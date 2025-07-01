@@ -252,6 +252,7 @@ function App() {
             currentUser={currentUser}
             players={players}
             onJoinTournament={handleJoinTournament}
+            onAddTokens={addTokensToPlayer}
           />
         ) : (
           <AdminPanel

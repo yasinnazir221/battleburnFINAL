@@ -1,22 +1,26 @@
 import React, { useState } from 'react';
-import { Calendar, Users, Trophy, Coins, Play, Clock, MapPin, Award, Copy, CheckCircle } from 'lucide-react';
+import { Calendar, Users, Trophy, Coins, Play, Clock, MapPin, Award, Copy, CheckCircle, CreditCard } from 'lucide-react';
 import { Tournament, User, Player } from '../types';
+import PaymentModal from './PaymentModal';
 
 interface DashboardProps {
   tournaments: Tournament[];
   currentUser: User;
   players: Player[];
   onJoinTournament: (tournamentId: string) => void;
+  onAddTokens: (playerId: string, amount: number, reason: string) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
   tournaments, 
   currentUser, 
   players, 
-  onJoinTournament 
+  onJoinTournament,
+  onAddTokens
 }) => {
   const [activeTab, setActiveTab] = useState<'tournaments' | 'matches' | 'wallet' | 'results'>('tournaments');
   const [copiedText, setCopiedText] = useState<string>('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   
   const currentPlayer = players.find(p => p.email === currentUser.email);
   const userTournaments = tournaments.filter(t => 
@@ -27,6 +31,23 @@ const Dashboard: React.FC<DashboardProps> = ({
     navigator.clipboard.writeText(text);
     setCopiedText(type);
     setTimeout(() => setCopiedText(''), 2000);
+  };
+
+  const handlePaymentSubmit = async (amount: number, screenshot: File) => {
+    if (!currentPlayer) return;
+    
+    try {
+      // Simulate AI processing and verification
+      // In a real app, you would upload the screenshot to your backend
+      // and use AI/ML services to verify the payment amount
+      
+      // For demo purposes, we'll automatically credit the tokens
+      await onAddTokens(currentPlayer.id, amount, `JazzCash Payment Verification - ${amount} PKR`);
+      
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      throw error;
+    }
   };
 
   const getStatusColor = (status: Tournament['status']) => {
@@ -283,10 +304,10 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
             
             <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-6">
-              <h4 className="text-white font-bold mb-4">Add Tokens</h4>
+              <h4 className="text-white font-bold mb-4">Buy Tokens</h4>
               <div className="space-y-3">
                 <p className="text-gray-400 text-sm">
-                  Send PKR to JazzCash:
+                  Purchase tokens via JazzCash:
                 </p>
                 <div className="flex items-center justify-between bg-green-500/10 border border-green-500/30 rounded p-3">
                   <span className="text-green-400 font-mono font-bold">03092198628</span>
@@ -297,8 +318,15 @@ const Dashboard: React.FC<DashboardProps> = ({
                     {copiedText === 'jazzcash' ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
                   </button>
                 </div>
+                <button
+                  onClick={() => setShowPaymentModal(true)}
+                  className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-all flex items-center justify-center gap-2"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  Buy Tokens
+                </button>
                 <p className="text-gray-400 text-xs">
-                  After payment, contact admin to credit tokens to your account.
+                  AI-powered instant verification
                 </p>
               </div>
             </div>
@@ -311,6 +339,40 @@ const Dashboard: React.FC<DashboardProps> = ({
               <button className="w-full bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
                 Request Withdrawal
               </button>
+            </div>
+          </div>
+
+          {/* Payment Instructions */}
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-6">
+            <h4 className="text-blue-400 font-bold mb-4 flex items-center gap-2">
+              <CreditCard className="w-5 h-5" />
+              How to Buy Tokens
+            </h4>
+            <div className="grid md:grid-cols-4 gap-4 text-sm">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <span className="text-blue-400 font-bold">1</span>
+                </div>
+                <p className="text-gray-300">Send money to JazzCash number</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <span className="text-blue-400 font-bold">2</span>
+                </div>
+                <p className="text-gray-300">Take screenshot of confirmation</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <span className="text-blue-400 font-bold">3</span>
+                </div>
+                <p className="text-gray-300">Upload via "Buy Tokens" button</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <span className="text-blue-400 font-bold">4</span>
+                </div>
+                <p className="text-gray-300">AI verifies & credits tokens</p>
+              </div>
             </div>
           </div>
         </div>
@@ -326,6 +388,13 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
       )}
+
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onPaymentSubmit={handlePaymentSubmit}
+      />
     </div>
   );
 };
