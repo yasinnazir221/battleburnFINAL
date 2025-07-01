@@ -103,6 +103,51 @@ function App() {
     }
   };
 
+  const handleJoinTournament = async (tournamentId: string) => {
+    if (!currentUser || currentUser.role === 'admin') return;
+    
+    const tournament = tournaments.find(t => t.id === tournamentId);
+    const player = players.find(p => p.email === currentUser.email);
+    
+    if (!tournament || !player) return;
+    
+    // Check if player already joined
+    if (tournament.participants.includes(player.id)) {
+      alert('You have already joined this tournament!');
+      return;
+    }
+    
+    // Check if tournament is full
+    if (tournament.participants.length >= tournament.maxPlayers) {
+      alert('Tournament is full!');
+      return;
+    }
+    
+    // Check if player has enough tokens
+    if (player.tokens < tournament.entryFee) {
+      alert('Insufficient tokens to join this tournament!');
+      return;
+    }
+    
+    try {
+      // Deduct tokens from player
+      await addTokensToPlayer(player.id, -tournament.entryFee, `Tournament Entry: ${tournament.title}`);
+      
+      // Add player to tournament participants
+      const updatedParticipants = [...tournament.participants, player.id];
+      await updateTournament(tournamentId, { 
+        participants: updatedParticipants,
+        currentPlayers: updatedParticipants.length,
+        status: updatedParticipants.length >= tournament.maxPlayers ? 'full' : tournament.status
+      });
+      
+      alert('Successfully joined the tournament!');
+    } catch (error) {
+      console.error('Error joining tournament:', error);
+      alert('Failed to join tournament. Please try again.');
+    }
+  };
+
   if (showSplash) {
     return <SplashScreen />;
   }
@@ -206,19 +251,7 @@ function App() {
             tournaments={tournaments}
             currentUser={currentUser}
             players={players}
-            onJoinTournament={(tournamentId) => {
-              // Handle tournament joining logic
-              const tournament = tournaments.find(t => t.id === tournamentId);
-              if (tournament && currentUser.role !== 'admin') {
-                const player = players.find(p => p.email === currentUser.email);
-                if (player && player.tokens >= tournament.entryFee) {
-                  addTokensToPlayer(player.id, -tournament.entryFee, 'Tournament Entry');
-                  updateTournament(tournamentId, { 
-                    currentPlayers: tournament.currentPlayers + 1 
-                  });
-                }
-              }
-            }}
+            onJoinTournament={handleJoinTournament}
           />
         ) : (
           <AdminPanel

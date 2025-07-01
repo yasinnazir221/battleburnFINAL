@@ -69,9 +69,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     if (newTournament.title && newTournament.dateTime) {
       onCreateTournament({
         ...newTournament,
-        status: 'upcoming',
+        status: 'waiting',
         participants: [],
         matches: [],
+        currentPlayers: 0,
         createdAt: new Date().toISOString()
       });
       setNewTournament({
@@ -91,6 +92,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
+  const handleUpdateTournament = (tournament: Tournament, updates: Partial<Tournament>) => {
+    onUpdateTournament(tournament.id, updates);
+    setEditingTournament(null);
+  };
+
   const handleBulkTokens = () => {
     if (selectedPlayers.length > 0 && bulkTokenAmount > 0) {
       selectedPlayers.forEach(playerId => {
@@ -104,9 +110,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const stats = {
     totalTournaments: tournaments.length,
-    activeTournaments: tournaments.filter(t => t.status === 'active').length,
+    activeTournaments: tournaments.filter(t => t.status === 'live' || t.status === 'waiting').length,
     totalPlayers: players.length,
-    totalTokensDistributed: tokenTransactions.reduce((sum, t) => sum + (t.amount > 0 ? t.amount : 0), 0)
+    totalTokensDistributed: tokenTransactions.reduce((sum, t) => sum + (t.amount > 0 ? t.amount : 0), 0),
+    totalSlots: tournaments.reduce((sum, t) => sum + t.maxPlayers, 0),
+    filledSlots: tournaments.reduce((sum, t) => sum + t.participants.length, 0)
   };
 
   return (
@@ -182,10 +190,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-slate-400 text-sm">Tokens Distributed</p>
-                    <p className="text-2xl font-bold text-white">{stats.totalTokensDistributed}</p>
+                    <p className="text-slate-400 text-sm">Total Slots</p>
+                    <p className="text-2xl font-bold text-white">{stats.filledSlots}/{stats.totalSlots}</p>
                   </div>
-                  <Coins className="text-yellow-400" size={24} />
+                  <Target className="text-orange-400" size={24} />
                 </div>
               </div>
             </div>
@@ -266,11 +274,48 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
                   />
                   <input
+                    type="number"
+                    placeholder="Max Players"
+                    value={newTournament.maxPlayers}
+                    onChange={(e) => setNewTournament({...newTournament, maxPlayers: parseInt(e.target.value)})}
+                    className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
+                  />
+                  <input
                     type="datetime-local"
                     value={newTournament.dateTime}
                     onChange={(e) => setNewTournament({...newTournament, dateTime: e.target.value})}
                     className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white"
                   />
+                  <input
+                    type="text"
+                    placeholder="Room ID"
+                    value={newTournament.roomId}
+                    onChange={(e) => setNewTournament({...newTournament, roomId: e.target.value})}
+                    className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Room Password"
+                    value={newTournament.roomPassword}
+                    onChange={(e) => setNewTournament({...newTournament, roomPassword: e.target.value})}
+                    className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      placeholder="Kill Reward"
+                      value={newTournament.killReward}
+                      onChange={(e) => setNewTournament({...newTournament, killReward: parseInt(e.target.value)})}
+                      className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Booyah Reward"
+                      value={newTournament.booyahReward}
+                      onChange={(e) => setNewTournament({...newTournament, booyahReward: parseInt(e.target.value)})}
+                      className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
+                    />
+                  </div>
                   <textarea
                     placeholder="Description"
                     value={newTournament.description}
@@ -300,51 +345,101 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             <div className="grid gap-4">
               {tournaments.map(tournament => (
                 <div key={tournament.id} className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-bold text-white">{tournament.title}</h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          tournament.status === 'active' ? 'bg-green-500/20 text-green-400' :
-                          tournament.status === 'upcoming' ? 'bg-blue-500/20 text-blue-400' :
-                          'bg-slate-500/20 text-slate-400'
-                        }`}>
-                          {tournament.status}
-                        </span>
+                  {editingTournament?.id === tournament.id ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input
+                          type="text"
+                          value={editingTournament.title}
+                          onChange={(e) => setEditingTournament({...editingTournament, title: e.target.value})}
+                          className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white"
+                        />
+                        <input
+                          type="text"
+                          value={editingTournament.roomId}
+                          onChange={(e) => setEditingTournament({...editingTournament, roomId: e.target.value})}
+                          placeholder="Room ID"
+                          className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
+                        />
+                        <input
+                          type="text"
+                          value={editingTournament.roomPassword}
+                          onChange={(e) => setEditingTournament({...editingTournament, roomPassword: e.target.value})}
+                          placeholder="Room Password"
+                          className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
+                        />
+                        <select
+                          value={editingTournament.status}
+                          onChange={(e) => setEditingTournament({...editingTournament, status: e.target.value as any})}
+                          className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white"
+                        >
+                          <option value="waiting">Waiting</option>
+                          <option value="live">Live</option>
+                          <option value="completed">Completed</option>
+                        </select>
                       </div>
-                      <p className="text-slate-400 mb-3">{tournament.description}</p>
-                      <div className="flex flex-wrap gap-4 text-sm">
-                        <span className="text-slate-300 flex items-center gap-1">
-                          <Users size={14} />
-                          {tournament.participants.length}/{tournament.maxPlayers}
-                        </span>
-                        <span className="text-slate-300 flex items-center gap-1">
-                          <Coins size={14} />
-                          {tournament.entryFee} tokens
-                        </span>
-                        <span className="text-slate-300 flex items-center gap-1">
-                          <Calendar size={14} />
-                          {new Date(tournament.dateTime).toLocaleDateString()}
-                        </span>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => handleUpdateTournament(tournament, editingTournament)}
+                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                        >
+                          <Save size={16} />
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingTournament(null)}
+                          className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                        >
+                          <X size={16} />
+                          Cancel
+                        </button>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setEditingTournament(tournament)}
-                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={() => onUpdateTournament(tournament.id, { 
-                          status: tournament.status === 'active' ? 'completed' : 'active' 
-                        })}
-                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
-                      >
-                        {tournament.status === 'active' ? <Eye size={16} /> : <Play size={16} />}
-                      </button>
+                  ) : (
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-xl font-bold text-white">{tournament.title}</h3>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            tournament.status === 'live' ? 'bg-green-500/20 text-green-400' :
+                            tournament.status === 'waiting' ? 'bg-blue-500/20 text-blue-400' :
+                            'bg-slate-500/20 text-slate-400'
+                          }`}>
+                            {tournament.status}
+                          </span>
+                        </div>
+                        <p className="text-slate-400 mb-3">{tournament.description}</p>
+                        <div className="flex flex-wrap gap-4 text-sm">
+                          <span className="text-slate-300 flex items-center gap-1">
+                            <Users size={14} />
+                            {tournament.participants.length}/{tournament.maxPlayers}
+                          </span>
+                          <span className="text-slate-300 flex items-center gap-1">
+                            <Coins size={14} />
+                            {tournament.entryFee} tokens
+                          </span>
+                          <span className="text-slate-300 flex items-center gap-1">
+                            <Calendar size={14} />
+                            {new Date(tournament.dateTime).toLocaleDateString()}
+                          </span>
+                          {tournament.roomId && (
+                            <span className="text-slate-300 flex items-center gap-1">
+                              <MapPin size={14} />
+                              Room: {tournament.roomId}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setEditingTournament(tournament)}
+                          className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+                        >
+                          <Edit size={16} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>

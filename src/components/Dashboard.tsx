@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Users, Trophy, Coins, Play, Clock, MapPin, Award } from 'lucide-react';
+import { Calendar, Users, Trophy, Coins, Play, Clock, MapPin, Award, Copy, CheckCircle } from 'lucide-react';
 import { Tournament, User, Player } from '../types';
 
 interface DashboardProps {
@@ -16,11 +16,18 @@ const Dashboard: React.FC<DashboardProps> = ({
   onJoinTournament 
 }) => {
   const [activeTab, setActiveTab] = useState<'tournaments' | 'matches' | 'wallet' | 'results'>('tournaments');
+  const [copiedText, setCopiedText] = useState<string>('');
   
   const currentPlayer = players.find(p => p.email === currentUser.email);
   const userTournaments = tournaments.filter(t => 
-    currentPlayer?.registeredTournaments.includes(t.id)
+    t.participants.includes(currentPlayer?.id || '')
   );
+
+  const copyToClipboard = (text: string, type: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedText(type);
+    setTimeout(() => setCopiedText(''), 2000);
+  };
 
   const getStatusColor = (status: Tournament['status']) => {
     switch (status) {
@@ -84,66 +91,107 @@ const Dashboard: React.FC<DashboardProps> = ({
         <div className="space-y-6">
           <h3 className="text-2xl font-bold text-white">Available Tournaments</h3>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {tournaments.map(tournament => (
-              <div key={tournament.id} className="bg-gray-800/50 rounded-xl border border-gray-700 p-6 hover:border-orange-500/50 transition-all">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h4 className="text-xl font-bold text-white mb-1">{tournament.title}</h4>
-                    <p className="text-gray-400 text-sm">{tournament.description}</p>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full border text-xs font-semibold ${getStatusColor(tournament.status)}`}>
-                    {tournament.status.toUpperCase()}
-                  </span>
-                </div>
-                
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-center space-x-2 text-sm text-gray-300">
-                    <Calendar className="w-4 h-4" />
-                    <span>{new Date(tournament.dateTime).toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm text-gray-300">
-                    <Users className="w-4 h-4" />
-                    <span>{tournament.currentPlayers}/{tournament.maxPlayers} players</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm text-gray-300">
-                    <Coins className="w-4 h-4" />
-                    <span>Entry: {tournament.entryFee} tokens</span>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="bg-gray-700/50 rounded-lg p-3 text-center">
-                    <p className="text-yellow-400 font-bold">{tournament.killReward}</p>
-                    <p className="text-xs text-gray-400">Per Kill</p>
-                  </div>
-                  <div className="bg-gray-700/50 rounded-lg p-3 text-center">
-                    <p className="text-green-400 font-bold">{tournament.booyahReward}</p>
-                    <p className="text-xs text-gray-400">Booyah</p>
-                  </div>
-                </div>
-                
-                {tournament.status === 'live' && tournament.roomId && (
-                  <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 mb-4">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <MapPin className="w-4 h-4 text-green-400" />
-                      <span className="text-green-400 font-semibold">Room Details</span>
+            {tournaments.map(tournament => {
+              const isJoined = tournament.participants.includes(currentPlayer?.id || '');
+              const canJoin = tournament.status === 'waiting' && 
+                            (currentPlayer?.tokens || 0) >= tournament.entryFee &&
+                            tournament.participants.length < tournament.maxPlayers;
+              
+              return (
+                <div key={tournament.id} className="bg-gray-800/50 rounded-xl border border-gray-700 p-6 hover:border-orange-500/50 transition-all">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h4 className="text-xl font-bold text-white mb-1">{tournament.title}</h4>
+                      <p className="text-gray-400 text-sm">{tournament.description}</p>
                     </div>
-                    <p className="text-white font-mono">ID: {tournament.roomId}</p>
-                    <p className="text-white font-mono">Password: {tournament.roomPassword}</p>
+                    <span className={`px-3 py-1 rounded-full border text-xs font-semibold ${getStatusColor(tournament.status)}`}>
+                      {tournament.status.toUpperCase()}
+                    </span>
                   </div>
-                )}
-                
-                <button
-                  onClick={() => onJoinTournament(tournament.id)}
-                  disabled={tournament.status !== 'waiting' || (currentPlayer?.tokens || 0) < tournament.entryFee}
-                  className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 disabled:from-gray-600 disabled:to-gray-600 text-black font-bold py-3 px-4 rounded-lg transition-all disabled:cursor-not-allowed"
-                >
-                  {tournament.status === 'waiting' ? 'Join Tournament' : 
-                   tournament.status === 'live' ? 'Live Now' : 
-                   tournament.status === 'full' ? 'Full' : 'Completed'}
-                </button>
-              </div>
-            ))}
+                  
+                  <div className="space-y-3 mb-6">
+                    <div className="flex items-center space-x-2 text-sm text-gray-300">
+                      <Calendar className="w-4 h-4" />
+                      <span>{new Date(tournament.dateTime).toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-sm text-gray-300">
+                      <Users className="w-4 h-4" />
+                      <span>{tournament.participants.length}/{tournament.maxPlayers} players</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-sm text-gray-300">
+                      <Coins className="w-4 h-4" />
+                      <span>Entry: {tournament.entryFee} tokens</span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+                      <p className="text-yellow-400 font-bold">{tournament.killReward}</p>
+                      <p className="text-xs text-gray-400">Per Kill</p>
+                    </div>
+                    <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+                      <p className="text-green-400 font-bold">{tournament.booyahReward}</p>
+                      <p className="text-xs text-gray-400">Booyah</p>
+                    </div>
+                  </div>
+                  
+                  {/* Room Details - Show only to joined players */}
+                  {isJoined && tournament.roomId && (
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-4">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <MapPin className="w-4 h-4 text-green-400" />
+                        <span className="text-green-400 font-semibold">Room Details</span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between bg-gray-800/50 rounded p-2">
+                          <div>
+                            <p className="text-gray-400 text-xs">Room ID</p>
+                            <p className="text-white font-mono text-sm">{tournament.roomId}</p>
+                          </div>
+                          <button
+                            onClick={() => copyToClipboard(tournament.roomId, 'roomId')}
+                            className="p-1 text-gray-400 hover:text-white transition-colors"
+                          >
+                            {copiedText === 'roomId' ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between bg-gray-800/50 rounded p-2">
+                          <div>
+                            <p className="text-gray-400 text-xs">Password</p>
+                            <p className="text-white font-mono text-sm">{tournament.roomPassword}</p>
+                          </div>
+                          <button
+                            onClick={() => copyToClipboard(tournament.roomPassword, 'roomPassword')}
+                            className="p-1 text-gray-400 hover:text-white transition-colors"
+                          >
+                            {copiedText === 'roomPassword' ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <button
+                    onClick={() => onJoinTournament(tournament.id)}
+                    disabled={!canJoin || isJoined}
+                    className={`w-full font-bold py-3 px-4 rounded-lg transition-all ${
+                      isJoined 
+                        ? 'bg-green-600 text-white cursor-default' 
+                        : canJoin
+                        ? 'bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-black'
+                        : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    {isJoined ? 'Joined ✓' :
+                     canJoin ? 'Join Tournament' : 
+                     tournament.status === 'live' ? 'Live Now' : 
+                     tournament.status === 'full' ? 'Full' : 
+                     tournament.participants.length >= tournament.maxPlayers ? 'Full' :
+                     'Insufficient Tokens'}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -174,11 +222,29 @@ const Dashboard: React.FC<DashboardProps> = ({
                       </div>
                     </div>
                     
-                    {tournament.status === 'live' && tournament.roomId && (
+                    {tournament.roomId && (
                       <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
                         <p className="text-green-400 font-semibold mb-1">Room Details:</p>
-                        <p className="text-white font-mono text-sm">ID: {tournament.roomId}</p>
-                        <p className="text-white font-mono text-sm">Pass: {tournament.roomPassword}</p>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-white font-mono text-sm">ID: {tournament.roomId}</p>
+                            <p className="text-white font-mono text-sm">Pass: {tournament.roomPassword}</p>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <button
+                              onClick={() => copyToClipboard(tournament.roomId, 'matchRoomId')}
+                              className="p-1 text-gray-400 hover:text-white transition-colors"
+                            >
+                              {copiedText === 'matchRoomId' ? <CheckCircle className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+                            </button>
+                            <button
+                              onClick={() => copyToClipboard(tournament.roomPassword, 'matchRoomPass')}
+                              className="p-1 text-gray-400 hover:text-white transition-colors"
+                            >
+                              {copiedText === 'matchRoomPass' ? <CheckCircle className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -218,12 +284,23 @@ const Dashboard: React.FC<DashboardProps> = ({
             
             <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-6">
               <h4 className="text-white font-bold mb-4">Add Tokens</h4>
-              <p className="text-gray-400 text-sm mb-4">
-                Send PKR to JazzCash: <span className="text-orange-400 font-mono">03XX-XXXXXXX</span>
-              </p>
-              <p className="text-gray-400 text-xs">
-                After payment, contact admin to credit tokens to your account.
-              </p>
+              <div className="space-y-3">
+                <p className="text-gray-400 text-sm">
+                  Send PKR to JazzCash:
+                </p>
+                <div className="flex items-center justify-between bg-green-500/10 border border-green-500/30 rounded p-3">
+                  <span className="text-green-400 font-mono font-bold">03092198628</span>
+                  <button
+                    onClick={() => copyToClipboard('03092198628', 'jazzcash')}
+                    className="p-1 text-gray-400 hover:text-white transition-colors"
+                  >
+                    {copiedText === 'jazzcash' ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-gray-400 text-xs">
+                  After payment, contact admin to credit tokens to your account.
+                </p>
+              </div>
             </div>
             
             <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-6">
