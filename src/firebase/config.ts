@@ -1,24 +1,25 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+// Mock Firebase configuration for testing
+// This will be replaced with real Firebase config when ready
 
-// Demo Firebase configuration - Replace with your actual Firebase project credentials
-const firebaseConfig = {
-  apiKey: "AIzaSyDemo_Replace_With_Your_Actual_API_Key",
-  authDomain: "battleburn-ff-demo.firebaseapp.com",
-  projectId: "battleburn-ff-demo",
-  storageBucket: "battleburn-ff-demo.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abcdef123456789012345678"
+// Mock Firebase app object
+const mockApp = {
+  name: 'mock-app',
+  options: {}
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Mock auth object
+export const auth = {
+  currentUser: null,
+  onAuthStateChanged: (callback: any) => {
+    // Return a mock unsubscribe function
+    return () => {};
+  }
+};
 
-// Initialize Firebase Authentication and get a reference to the service
-export const auth = getAuth(app);
+// Mock firestore object
+export const db = {
+  collection: () => ({}),
+  doc: () => ({})
+};
 
-// Initialize Cloud Firestore and get a reference to the service
-export const db = getFirestore(app);
-
-export default app;
+export default mockApp;
