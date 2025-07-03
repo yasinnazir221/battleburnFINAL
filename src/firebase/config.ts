@@ -1,25 +1,25 @@
-// Mock Firebase configuration for testing
-// This will be replaced with real Firebase config when ready
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
-// Mock Firebase app object
-const mockApp = {
-  name: 'mock-app',
-  options: {}
+// For now, we'll use a demo Firebase config
+// Replace with your actual Firebase config when ready
+const firebaseConfig = {
+  apiKey: "demo-api-key",
+  authDomain: "demo-project.firebaseapp.com",
+  projectId: "demo-project",
+  storageBucket: "demo-project.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "demo-app-id"
 };
 
-// Mock auth object
-export const auth = {
-  currentUser: null,
-  onAuthStateChanged: (callback: any) => {
-    // Return a mock unsubscribe function
-    return () => {};
-  }
-};
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
-// Mock firestore object
-export const db = {
-  collection: () => ({}),
-  doc: () => ({})
-};
+// Initialize Firebase Authentication and get a reference to the service
+export const auth = getAuth(app);
 
-export default mockApp;
+// Initialize Cloud Firestore and get a reference to the service
+export const db = getFirestore(app);
+
+export default app;

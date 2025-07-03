@@ -5,102 +5,136 @@ import AuthForm from './components/AuthForm';
 import Dashboard from './components/Dashboard';
 import AdminPanel from './components/AdminPanel';
 import { User, Tournament, Player } from './types';
-import { onAuthStateChange, signOutUser } from './firebase/auth';
-import { 
-  getAllPlayers, 
-  getAllTournaments, 
-  createTournament as createTournamentInDB, 
-  updateTournament as updateTournamentInDB,
-  updatePlayerTokens,
-  listenToPlayers,
-  listenToTournaments
-} from './firebase/firestore';
+
+// Mock data for testing
+const mockTournaments: Tournament[] = [
+  {
+    id: '1',
+    title: 'Friday Night Battle',
+    description: 'Epic 1v1 tournament with amazing rewards',
+    mode: '1v1',
+    entryFee: 20,
+    killReward: 5,
+    booyahReward: 100,
+    dateTime: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
+    status: 'waiting',
+    maxPlayers: 40,
+    currentPlayers: 12,
+    participants: [],
+    matches: [],
+    roomId: '',
+    roomPassword: '',
+    rules: ['No cheating allowed', 'Use registered UID only'],
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: '2',
+    title: 'Squad Championship',
+    description: 'Team up and dominate in squad mode',
+    mode: 'squad',
+    entryFee: 50,
+    killReward: 10,
+    booyahReward: 200,
+    dateTime: new Date(Date.now() + 172800000).toISOString(), // Day after tomorrow
+    status: 'waiting',
+    maxPlayers: 16,
+    currentPlayers: 8,
+    participants: [],
+    matches: [],
+    roomId: '',
+    roomPassword: '',
+    rules: ['Squad of 4 players', 'No solo players allowed'],
+    createdAt: new Date().toISOString()
+  }
+];
+
+const mockPlayers: Player[] = [
+  {
+    id: 'player1',
+    email: 'player@test.com',
+    username: 'TestPlayer',
+    displayName: 'Test Player',
+    tokens: 150,
+    playerId: 'TEST123',
+    gameUid: '123456789',
+    uid: '123456789',
+    registeredTournaments: [],
+    matchHistory: [],
+    createdAt: new Date().toISOString()
+  }
+];
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<'dashboard' | 'admin'>('dashboard');
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [tournaments, setTournaments] = useState<Tournament[]>(mockTournaments);
+  const [players, setPlayers] = useState<Player[]>(mockPlayers);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 3000);
-
-    // Listen to authentication state changes
-    const unsubscribeAuth = onAuthStateChange((user) => {
-      setCurrentUser(user);
       setLoading(false);
-    });
+    }, 3000);
 
     return () => {
       clearTimeout(timer);
-      unsubscribeAuth();
     };
   }, []);
 
-  useEffect(() => {
-    if (currentUser) {
-      // Set up real-time listeners for tournaments and players
-      const unsubscribeTournaments = listenToTournaments((tournaments) => {
-        setTournaments(tournaments);
-      });
-
-      const unsubscribePlayers = listenToPlayers((players) => {
-        setPlayers(players);
-      });
-
-      return () => {
-        unsubscribeTournaments();
-        unsubscribePlayers();
-      };
-    }
-  }, [currentUser]);
-
   const handleLogin = (user: User) => {
     setCurrentUser(user);
+    
+    // Add mock player if doesn't exist
+    if (!players.find(p => p.email === user.email)) {
+      const newPlayer: Player = {
+        id: `player_${Date.now()}`,
+        email: user.email,
+        username: user.username,
+        displayName: user.username,
+        tokens: 100, // Starting tokens
+        playerId: `PID${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+        gameUid: `${Math.floor(Math.random() * 1000000000)}`,
+        uid: `${Math.floor(Math.random() * 1000000000)}`,
+        registeredTournaments: [],
+        matchHistory: [],
+        createdAt: new Date().toISOString()
+      };
+      setPlayers(prev => [...prev, newPlayer]);
+    }
   };
 
   const handleLogout = async () => {
-    try {
-      await signOutUser();
-      setCurrentUser(null);
-      setCurrentView('dashboard');
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
+    setCurrentUser(null);
+    setCurrentView('dashboard');
   };
 
   const addTokensToPlayer = async (playerId: string, amount: number, reason: string) => {
-    try {
-      await updatePlayerTokens(playerId, amount, reason, currentUser?.id);
-      // The real-time listener will update the state automatically
-    } catch (error) {
-      console.error('Error updating tokens:', error);
-      alert('Failed to update tokens. Please try again.');
-    }
+    setPlayers(prev => prev.map(player => 
+      player.id === playerId 
+        ? { ...player, tokens: player.tokens + amount }
+        : player
+    ));
   };
 
   const createTournament = async (tournament: Omit<Tournament, 'id'>) => {
-    try {
-      await createTournamentInDB(tournament);
-      // The real-time listener will update the state automatically
-    } catch (error) {
-      console.error('Error creating tournament:', error);
-      alert('Failed to create tournament. Please try again.');
-    }
+    const newTournament: Tournament = {
+      ...tournament,
+      id: `tournament_${Date.now()}`,
+      participants: [],
+      matches: [],
+      currentPlayers: 0
+    };
+    setTournaments(prev => [...prev, newTournament]);
   };
 
   const updateTournament = async (id: string, updates: Partial<Tournament>) => {
-    try {
-      await updateTournamentInDB(id, updates);
-      // The real-time listener will update the state automatically
-    } catch (error) {
-      console.error('Error updating tournament:', error);
-      alert('Failed to update tournament. Please try again.');
-    }
+    setTournaments(prev => prev.map(tournament => 
+      tournament.id === id 
+        ? { ...tournament, ...updates }
+        : tournament
+    ));
   };
 
   const handleJoinTournament = async (tournamentId: string) => {
@@ -129,23 +163,18 @@ function App() {
       return;
     }
     
-    try {
-      // Deduct tokens from player
-      await addTokensToPlayer(player.id, -tournament.entryFee, `Tournament Entry: ${tournament.title}`);
-      
-      // Add player to tournament participants
-      const updatedParticipants = [...tournament.participants, player.id];
-      await updateTournament(tournamentId, { 
-        participants: updatedParticipants,
-        currentPlayers: updatedParticipants.length,
-        status: updatedParticipants.length >= tournament.maxPlayers ? 'full' : tournament.status
-      });
-      
-      alert('Successfully joined the tournament!');
-    } catch (error) {
-      console.error('Error joining tournament:', error);
-      alert('Failed to join tournament. Please try again.');
-    }
+    // Deduct tokens from player
+    await addTokensToPlayer(player.id, -tournament.entryFee, `Tournament Entry: ${tournament.title}`);
+    
+    // Add player to tournament participants
+    const updatedParticipants = [...tournament.participants, player.id];
+    await updateTournament(tournamentId, { 
+      participants: updatedParticipants,
+      currentPlayers: updatedParticipants.length,
+      status: updatedParticipants.length >= tournament.maxPlayers ? 'full' : tournament.status
+    });
+    
+    alert('Successfully joined the tournament!');
   };
 
   if (showSplash) {

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, UserPlus, LogIn, Eye, EyeOff, Loader, User, Hash } from 'lucide-react';
 import { User as UserType } from '../types';
-import { signInUser, signUpUser, checkAdminStatus } from '../firebase/auth';
 
 interface AuthFormProps {
   onLogin: (user: UserType) => void;
@@ -26,27 +25,32 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
     setError('');
     
     try {
-      let user: UserType;
+      // Simulate authentication delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       if (isLogin) {
-        // Sign in existing user
-        user = await signInUser(formData.email, formData.password);
+        // Mock login - check for admin
+        const isAdmin = formData.email.toLowerCase().includes('admin');
         
-        // Check if admin
-        const isAdmin = await checkAdminStatus(formData.email);
-        if (isAdmin) {
-          user.role = 'admin';
-        }
+        onLogin({
+          id: `user_${Date.now()}`,
+          email: formData.email,
+          username: formData.email.split('@')[0],
+          role: isAdmin ? 'admin' : 'player'
+        });
       } else {
-        // Sign up new user
+        // Mock signup
         if (!formData.username || !formData.playerId || !formData.uid) {
           throw new Error('Username, Player ID, and Free Fire UID are required');
         }
         
-        user = await signUpUser(formData.email, formData.password, formData.username, formData.playerId, formData.uid);
+        onLogin({
+          id: `user_${Date.now()}`,
+          email: formData.email,
+          username: formData.username,
+          role: 'player'
+        });
       }
-      
-      onLogin(user);
     } catch (error: any) {
       console.error('Authentication error:', error);
       setError(error.message || 'Authentication failed');
@@ -82,6 +86,12 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
             <p className="text-gray-400 mt-2">
               {isLogin ? 'Sign in to your tournament account' : 'Create your Free Fire tournament account'}
             </p>
+            {/* Demo credentials */}
+            <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+              <p className="text-blue-400 text-sm font-semibold mb-1">Demo Credentials:</p>
+              <p className="text-gray-300 text-xs">Player: player@test.com / password</p>
+              <p className="text-gray-300 text-xs">Admin: admin@test.com / password</p>
+            </div>
           </div>
           
           {error && (
