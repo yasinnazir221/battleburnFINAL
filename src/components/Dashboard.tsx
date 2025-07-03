@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Users, Trophy, Coins, Play, Clock, MapPin, Award, Copy, CheckCircle, CreditCard } from 'lucide-react';
+import { Calendar, Users, Trophy, Coins, Play, Clock, MapPin, Award, Copy, CheckCircle, CreditCard, Smartphone, Zap, ArrowRight, Plus } from 'lucide-react';
 import { Tournament, User, Player } from '../types';
 import PaymentModal from './PaymentModal';
 
@@ -95,6 +95,13 @@ const Dashboard: React.FC<DashboardProps> = ({
               </span>
             </div>
             <p className="text-sm text-gray-400">Available Tokens</p>
+            <button
+              onClick={() => setShowPaymentModal(true)}
+              className="mt-2 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white text-xs font-bold py-1 px-3 rounded-full transition-all flex items-center gap-1"
+            >
+              <Plus className="w-3 h-3" />
+              Buy More
+            </button>
           </div>
         </div>
       </div>
@@ -288,90 +295,195 @@ const Dashboard: React.FC<DashboardProps> = ({
       )}
 
       {activeTab === 'wallet' && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           <h3 className="text-2xl font-bold text-white">Token Wallet</h3>
           
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-xl border border-yellow-500/30 p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <Coins className="w-8 h-8 text-yellow-400" />
+          {/* Current Balance Card */}
+          <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-2xl border border-yellow-500/30 p-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 bg-yellow-400/20 rounded-full flex items-center justify-center">
+                  <Coins className="w-8 h-8 text-yellow-400" />
+                </div>
                 <div>
-                  <h4 className="text-white font-bold">Current Balance</h4>
-                  <p className="text-yellow-400 text-2xl font-bold">{currentPlayer?.tokens || 0}</p>
+                  <h4 className="text-white font-bold text-lg">Current Balance</h4>
+                  <p className="text-yellow-400 text-4xl font-bold">{currentPlayer?.tokens || 0}</p>
+                  <p className="text-gray-300 text-sm">1 Token = 1 PKR</p>
                 </div>
               </div>
-              <p className="text-gray-300 text-sm">1 Token = 1 PKR</p>
-            </div>
-            
-            <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-6">
-              <h4 className="text-white font-bold mb-4">Buy Tokens</h4>
-              <div className="space-y-3">
-                <p className="text-gray-400 text-sm">
-                  Purchase tokens via JazzCash:
-                </p>
-                <div className="flex items-center justify-between bg-green-500/10 border border-green-500/30 rounded p-3">
-                  <span className="text-green-400 font-mono font-bold">03092198628</span>
-                  <button
-                    onClick={() => copyToClipboard('03092198628', 'jazzcash')}
-                    className="p-1 text-gray-400 hover:text-white transition-colors"
-                  >
-                    {copiedText === 'jazzcash' ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                  </button>
-                </div>
-                <button
-                  onClick={() => setShowPaymentModal(true)}
-                  className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-all flex items-center justify-center gap-2"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  Buy Tokens
-                </button>
-                <p className="text-gray-400 text-xs">
-                  AI-powered instant verification
-                </p>
-              </div>
-            </div>
-            
-            <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-6">
-              <h4 className="text-white font-bold mb-4">Withdraw</h4>
-              <p className="text-gray-400 text-sm mb-4">
-                Minimum withdrawal: 50 tokens
-              </p>
-              <button className="w-full bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
-                Request Withdrawal
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold py-4 px-6 rounded-xl transition-all flex items-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                <Plus className="w-5 h-5" />
+                Buy Tokens
               </button>
             </div>
           </div>
 
-          {/* Payment Instructions */}
-          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-6">
-            <h4 className="text-blue-400 font-bold mb-4 flex items-center gap-2">
-              <CreditCard className="w-5 h-5" />
-              How to Buy Tokens
+          {/* JazzCash Purchase Section */}
+          <div className="bg-gradient-to-br from-green-500/10 to-blue-500/10 rounded-2xl border border-green-500/30 p-8">
+            <div className="text-center mb-8">
+              <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Smartphone className="w-10 h-10 text-green-400" />
+              </div>
+              <h4 className="text-2xl font-bold text-white mb-2">Buy Tokens with JazzCash</h4>
+              <p className="text-gray-300">Instant AI verification • Secure payments • 24/7 available</p>
+            </div>
+
+            {/* JazzCash Number Display */}
+            <div className="bg-green-500/10 border-2 border-green-500/30 rounded-xl p-6 mb-6">
+              <div className="text-center">
+                <p className="text-green-400 font-semibold mb-2">Send Payment To:</p>
+                <div className="flex items-center justify-center gap-4 bg-green-500/20 rounded-lg p-4">
+                  <Smartphone className="w-6 h-6 text-green-400" />
+                  <span className="text-green-400 font-mono font-bold text-2xl">03092198628</span>
+                  <button
+                    onClick={() => copyToClipboard('03092198628', 'jazzcash')}
+                    className="p-2 text-gray-400 hover:text-white transition-colors bg-gray-800/50 rounded-lg"
+                  >
+                    {copiedText === 'jazzcash' ? <CheckCircle className="w-5 h-5 text-green-400" /> : <Copy className="w-5 h-5" />}
+                  </button>
+                </div>
+                <p className="text-gray-400 text-sm mt-2">JazzCash Mobile Account</p>
+              </div>
+            </div>
+
+            {/* How it Works */}
+            <div className="grid md:grid-cols-4 gap-6 mb-8">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="text-blue-400 font-bold text-lg">1</span>
+                </div>
+                <h5 className="text-white font-semibold mb-2">Send Money</h5>
+                <p className="text-gray-400 text-sm">Transfer PKR to our JazzCash number</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="text-blue-400 font-bold text-lg">2</span>
+                </div>
+                <h5 className="text-white font-semibold mb-2">Screenshot</h5>
+                <p className="text-gray-400 text-sm">Take photo of payment confirmation</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="text-blue-400 font-bold text-lg">3</span>
+                </div>
+                <h5 className="text-white font-semibold mb-2">Upload</h5>
+                <p className="text-gray-400 text-sm">Submit via our secure form</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Zap className="text-blue-400" size={20} />
+                </div>
+                <h5 className="text-white font-semibold mb-2">AI Verify</h5>
+                <p className="text-gray-400 text-sm">Instant token credit</p>
+              </div>
+            </div>
+
+            {/* CTA Button */}
+            <div className="text-center">
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold py-4 px-8 rounded-xl transition-all flex items-center gap-3 mx-auto shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                <CreditCard className="w-5 h-5" />
+                Start Token Purchase
+                <ArrowRight className="w-5 h-5" />
+              </button>
+              <p className="text-gray-400 text-sm mt-3">
+                ⚡ AI-powered instant verification • 🔒 Secure & encrypted
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Purchase Options */}
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-6 text-center">
+              <div className="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Coins className="w-6 h-6 text-yellow-400" />
+              </div>
+              <h5 className="text-white font-bold mb-2">Starter Pack</h5>
+              <p className="text-2xl font-bold text-yellow-400 mb-2">100 Tokens</p>
+              <p className="text-gray-400 text-sm mb-4">Perfect for 5 tournaments</p>
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="w-full bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 font-semibold py-2 px-4 rounded-lg transition-colors"
+              >
+                Buy for 100 PKR
+              </button>
+            </div>
+            
+            <div className="bg-gray-800/50 rounded-xl border border-orange-500/50 p-6 text-center relative">
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <span className="bg-orange-500 text-black text-xs font-bold px-3 py-1 rounded-full">POPULAR</span>
+              </div>
+              <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Coins className="w-6 h-6 text-orange-400" />
+              </div>
+              <h5 className="text-white font-bold mb-2">Pro Pack</h5>
+              <p className="text-2xl font-bold text-orange-400 mb-2">500 Tokens</p>
+              <p className="text-gray-400 text-sm mb-4">Best value for serious players</p>
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="w-full bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 font-semibold py-2 px-4 rounded-lg transition-colors"
+              >
+                Buy for 500 PKR
+              </button>
+            </div>
+            
+            <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-6 text-center">
+              <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Coins className="w-6 h-6 text-purple-400" />
+              </div>
+              <h5 className="text-white font-bold mb-2">Champion Pack</h5>
+              <p className="text-2xl font-bold text-purple-400 mb-2">1000 Tokens</p>
+              <p className="text-gray-400 text-sm mb-4">For tournament champions</p>
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="w-full bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 font-semibold py-2 px-4 rounded-lg transition-colors"
+              >
+                Buy for 1000 PKR
+              </button>
+            </div>
+          </div>
+
+          {/* Withdrawal Section */}
+          <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-6">
+            <h4 className="text-white font-bold mb-4 flex items-center gap-2">
+              <ArrowRight className="w-5 h-5 text-gray-400 rotate-180" />
+              Withdraw Tokens
             </h4>
-            <div className="grid md:grid-cols-4 gap-4 text-sm">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <span className="text-blue-400 font-bold">1</span>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <p className="text-gray-400 text-sm mb-4">
+                  Convert your tokens back to PKR. Minimum withdrawal: 50 tokens
+                </p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Processing Time:</span>
+                    <span className="text-white">24-48 hours</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Minimum Amount:</span>
+                    <span className="text-white">50 tokens</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Service Fee:</span>
+                    <span className="text-white">2% (min 5 tokens)</span>
+                  </div>
                 </div>
-                <p className="text-gray-300">Send money to JazzCash number</p>
               </div>
               <div className="text-center">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <span className="text-blue-400 font-bold">2</span>
-                </div>
-                <p className="text-gray-300">Take screenshot of confirmation</p>
-              </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <span className="text-blue-400 font-bold">3</span>
-                </div>
-                <p className="text-gray-300">Upload via "Buy Tokens" button</p>
-              </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <span className="text-blue-400 font-bold">4</span>
-                </div>
-                <p className="text-gray-300">AI verifies & credits tokens</p>
+                <button 
+                  disabled={(currentPlayer?.tokens || 0) < 50}
+                  className="w-full bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:text-gray-500 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+                >
+                  Request Withdrawal
+                </button>
+                <p className="text-gray-500 text-xs mt-2">
+                  {(currentPlayer?.tokens || 0) < 50 ? 'Insufficient balance' : 'Available for withdrawal'}
+                </p>
               </div>
             </div>
           </div>
