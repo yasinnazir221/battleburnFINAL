@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Users, Trophy, Coins, Play, Clock, MapPin, Award, Copy, CheckCircle, CreditCard, Smartphone, Zap, ArrowRight, Plus } from 'lucide-react';
+import { Calendar, Users, Trophy, Coins, Play, Clock, MapPin, Award, Copy, CheckCircle, CreditCard, Smartphone, Zap, ArrowRight, Plus, DollarSign } from 'lucide-react';
 import { Tournament, User, Player } from '../types';
 import PaymentModal from './PaymentModal';
 
@@ -42,7 +42,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       // and use AI/ML services to verify the payment amount
       
       // For demo purposes, we'll automatically credit the tokens
-      await onAddTokens(currentPlayer.id, amount, `JazzCash Payment Verification - ${amount} PKR`);
+      await onAddTokens(currentPlayer.id, amount, `Mobile Payment Verification - ${amount} PKR`);
       
     } catch (error) {
       console.error('Error processing payment:', error);
@@ -84,7 +84,10 @@ const Dashboard: React.FC<DashboardProps> = ({
               Welcome back, {currentUser.username}!
             </h2>
             <p className="text-gray-300">
-              Ready for your next tournament? Check out the latest battles below.
+              {(currentPlayer?.tokens || 0) === 0 
+                ? "Get started by purchasing tokens to join tournaments!" 
+                : "Ready for your next tournament? Check out the latest battles below."
+              }
             </p>
           </div>
           <div className="text-right">
@@ -95,13 +98,27 @@ const Dashboard: React.FC<DashboardProps> = ({
               </span>
             </div>
             <p className="text-sm text-gray-400">Available Tokens</p>
-            <button
-              onClick={() => setShowPaymentModal(true)}
-              className="mt-2 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white text-xs font-bold py-1 px-3 rounded-full transition-all flex items-center gap-1"
-            >
-              <Plus className="w-3 h-3" />
-              Buy More
-            </button>
+            {(currentPlayer?.tokens || 0) === 0 && (
+              <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                <p className="text-red-400 text-xs font-semibold mb-2">⚠️ No Tokens Available</p>
+                <button
+                  onClick={() => setShowPaymentModal(true)}
+                  className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2"
+                >
+                  <Plus className="w-3 h-3" />
+                  Buy Tokens Now
+                </button>
+              </div>
+            )}
+            {(currentPlayer?.tokens || 0) > 0 && (
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="mt-2 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white text-xs font-bold py-1 px-3 rounded-full transition-all flex items-center gap-1"
+              >
+                <Plus className="w-3 h-3" />
+                Buy More
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -118,6 +135,29 @@ const Dashboard: React.FC<DashboardProps> = ({
       {activeTab === 'tournaments' && (
         <div className="space-y-6">
           <h3 className="text-2xl font-bold text-white">Available Tournaments</h3>
+          
+          {/* No tokens warning */}
+          {(currentPlayer?.tokens || 0) === 0 && (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
+                  <Coins className="w-6 h-6 text-yellow-400" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-yellow-400 font-bold mb-1">Purchase Tokens to Join Tournaments</h4>
+                  <p className="text-gray-300 text-sm">You need tokens to participate in tournaments. Buy tokens using JazzCash or EasyPaisa.</p>
+                </div>
+                <button
+                  onClick={() => setShowPaymentModal(true)}
+                  className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2"
+                >
+                  <DollarSign className="w-4 h-4" />
+                  Buy Tokens
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {tournaments.map(tournament => {
               const isJoined = tournament.participants.includes(currentPlayer?.id || '');
@@ -200,17 +240,26 @@ const Dashboard: React.FC<DashboardProps> = ({
                   )}
                   
                   <button
-                    onClick={() => onJoinTournament(tournament.id)}
-                    disabled={!canJoin || isJoined}
+                    onClick={() => {
+                      if ((currentPlayer?.tokens || 0) === 0) {
+                        setShowPaymentModal(true);
+                      } else {
+                        onJoinTournament(tournament.id);
+                      }
+                    }}
+                    disabled={isJoined || (tournament.status !== 'waiting') || (tournament.participants.length >= tournament.maxPlayers)}
                     className={`w-full font-bold py-3 px-4 rounded-lg transition-all ${
                       isJoined 
                         ? 'bg-green-600 text-white cursor-default' 
+                        : (currentPlayer?.tokens || 0) === 0
+                        ? 'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white'
                         : canJoin
                         ? 'bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-black'
                         : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                     }`}
                   >
                     {isJoined ? 'Joined ✓' :
+                     (currentPlayer?.tokens || 0) === 0 ? 'Buy Tokens to Join' :
                      canJoin ? 'Join Tournament' : 
                      tournament.status === 'live' ? 'Live Now' : 
                      tournament.status === 'full' ? 'Full' : 
@@ -321,31 +370,76 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
 
-          {/* JazzCash Purchase Section */}
-          <div className="bg-gradient-to-br from-green-500/10 to-blue-500/10 rounded-2xl border border-green-500/30 p-8">
+          {/* Payment Methods Section */}
+          <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl border border-blue-500/30 p-8">
             <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Smartphone className="w-10 h-10 text-green-400" />
+              <div className="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Smartphone className="w-10 h-10 text-blue-400" />
               </div>
-              <h4 className="text-2xl font-bold text-white mb-2">Buy Tokens with JazzCash</h4>
+              <h4 className="text-2xl font-bold text-white mb-2">Buy Tokens with Mobile Payments</h4>
               <p className="text-gray-300">Instant AI verification • Secure payments • 24/7 available</p>
             </div>
 
-            {/* JazzCash Number Display */}
-            <div className="bg-green-500/10 border-2 border-green-500/30 rounded-xl p-6 mb-6">
-              <div className="text-center">
-                <p className="text-green-400 font-semibold mb-2">Send Payment To:</p>
-                <div className="flex items-center justify-center gap-4 bg-green-500/20 rounded-lg p-4">
-                  <Smartphone className="w-6 h-6 text-green-400" />
-                  <span className="text-green-400 font-mono font-bold text-2xl">03092198628</span>
-                  <button
-                    onClick={() => copyToClipboard('03092198628', 'jazzcash')}
-                    className="p-2 text-gray-400 hover:text-white transition-colors bg-gray-800/50 rounded-lg"
-                  >
-                    {copiedText === 'jazzcash' ? <CheckCircle className="w-5 h-5 text-green-400" /> : <Copy className="w-5 h-5" />}
-                  </button>
+            {/* Payment Methods Grid */}
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              {/* JazzCash */}
+              <div className="bg-gradient-to-br from-red-500/10 to-orange-500/10 border border-red-500/30 rounded-xl p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
+                    <Smartphone className="w-6 h-6 text-red-400" />
+                  </div>
+                  <div>
+                    <h5 className="text-white font-bold">JazzCash</h5>
+                    <p className="text-gray-400 text-sm">Mobile wallet payment</p>
+                  </div>
                 </div>
-                <p className="text-gray-400 text-sm mt-2">JazzCash Mobile Account</p>
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-red-400 font-mono font-bold">03092198628</span>
+                    <button
+                      onClick={() => copyToClipboard('03092198628', 'jazzcash')}
+                      className="p-2 text-gray-400 hover:text-white transition-colors"
+                    >
+                      {copiedText === 'jazzcash' ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowPaymentModal(true)}
+                  className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-400 font-semibold py-2 px-4 rounded-lg transition-colors"
+                >
+                  Pay with JazzCash
+                </button>
+              </div>
+
+              {/* EasyPaisa */}
+              <div className="bg-gradient-to-br from-green-500/10 to-blue-500/10 border border-green-500/30 rounded-xl p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
+                    <Smartphone className="w-6 h-6 text-green-400" />
+                  </div>
+                  <div>
+                    <h5 className="text-white font-bold">EasyPaisa</h5>
+                    <p className="text-gray-400 text-sm">Mobile wallet payment</p>
+                  </div>
+                </div>
+                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-green-400 font-mono font-bold">03092198628</span>
+                    <button
+                      onClick={() => copyToClipboard('03092198628', 'easypaisa')}
+                      className="p-2 text-gray-400 hover:text-white transition-colors"
+                    >
+                      {copiedText === 'easypaisa' ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowPaymentModal(true)}
+                  className="w-full bg-green-500/20 hover:bg-green-500/30 text-green-400 font-semibold py-2 px-4 rounded-lg transition-colors"
+                >
+                  Pay with EasyPaisa
+                </button>
               </div>
             </div>
 
@@ -356,7 +450,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <span className="text-blue-400 font-bold text-lg">1</span>
                 </div>
                 <h5 className="text-white font-semibold mb-2">Send Money</h5>
-                <p className="text-gray-400 text-sm">Transfer PKR to our JazzCash number</p>
+                <p className="text-gray-400 text-sm">Transfer PKR to our mobile number</p>
               </div>
               <div className="text-center">
                 <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">

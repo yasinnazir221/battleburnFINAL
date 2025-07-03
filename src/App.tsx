@@ -54,7 +54,7 @@ const mockPlayers: Player[] = [
     email: 'player@test.com',
     username: 'TestPlayer',
     displayName: 'Test Player',
-    tokens: 150,
+    tokens: 0, // Changed to 0
     playerId: 'TEST123',
     gameUid: '123456789',
     uid: '123456789',
@@ -93,7 +93,7 @@ function App() {
         email: user.email,
         username: user.username,
         displayName: user.username,
-        tokens: 100, // Starting tokens
+        tokens: 0, // Changed to 0 starting tokens
         playerId: `PID${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
         gameUid: `${Math.floor(Math.random() * 1000000000)}`,
         uid: `${Math.floor(Math.random() * 1000000000)}`,
