@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Calendar, Users, Trophy, Coins, Play, Clock, MapPin, Award, Copy, CheckCircle, CreditCard, Smartphone, Zap, ArrowRight, Plus, DollarSign } from 'lucide-react';
+import { Calendar, Users, Trophy, Coins, Play, Clock, MapPin, Award, Copy, CheckCircle, CreditCard, Smartphone, Zap, ArrowRight, Plus, DollarSign, ArrowUpDown, Send } from 'lucide-react';
 import { Tournament, User, Player } from '../types';
 import PaymentModal from './PaymentModal';
+import WithdrawalModal from './WithdrawalModal';
 
 interface DashboardProps {
   tournaments: Tournament[];
@@ -18,9 +19,10 @@ const Dashboard: React.FC<DashboardProps> = ({
   onJoinTournament,
   onAddTokens
 }) => {
-  const [activeTab, setActiveTab] = useState<'tournaments' | 'matches' | 'wallet' | 'results'>('tournaments');
+  const [activeTab, setActiveTab] = useState<'tournaments' | 'matches' | 'wallet' | 'exchange' | 'results'>('tournaments');
   const [copiedText, setCopiedText] = useState<string>('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
   
   const currentPlayer = players.find(p => p.email === currentUser.email);
   const userTournaments = tournaments.filter(t => 
@@ -42,7 +44,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       // and use AI/ML services to verify the payment amount
       
       // For demo purposes, we'll automatically credit the tokens
-      await onAddTokens(currentPlayer.id, amount, `Mobile Payment Verification - ${amount} PKR`);
+      await onAddTokens(currentPlayer.id, amount, `JazzCash Payment Verification - ${amount} PKR`);
       
     } catch (error) {
       console.error('Error processing payment:', error);
@@ -103,7 +105,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <p className="text-red-400 text-xs font-semibold mb-2">⚠️ No Tokens Available</p>
                 <button
                   onClick={() => setShowPaymentModal(true)}
-                  className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2"
+                  className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2"
                 >
                   <Plus className="w-3 h-3" />
                   Buy Tokens Now
@@ -111,13 +113,22 @@ const Dashboard: React.FC<DashboardProps> = ({
               </div>
             )}
             {(currentPlayer?.tokens || 0) > 0 && (
-              <button
-                onClick={() => setShowPaymentModal(true)}
-                className="mt-2 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white text-xs font-bold py-1 px-3 rounded-full transition-all flex items-center gap-1"
-              >
-                <Plus className="w-3 h-3" />
-                Buy More
-              </button>
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => setShowPaymentModal(true)}
+                  className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white text-xs font-bold py-1 px-3 rounded-full transition-all flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  Buy
+                </button>
+                <button
+                  onClick={() => setShowWithdrawalModal(true)}
+                  className="bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white text-xs font-bold py-1 px-3 rounded-full transition-all flex items-center gap-1"
+                >
+                  <Send className="w-3 h-3" />
+                  Withdraw
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -128,6 +139,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         <TabButton id="tournaments" icon={Trophy} label="Tournaments" />
         <TabButton id="matches" icon={Play} label="My Matches" />
         <TabButton id="wallet" icon={Coins} label="Wallet" />
+        <TabButton id="exchange" icon={ArrowUpDown} label="Exchange" />
         <TabButton id="results" icon={Award} label="Results" />
       </div>
 
@@ -145,11 +157,11 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </div>
                 <div className="flex-1">
                   <h4 className="text-yellow-400 font-bold mb-1">Purchase Tokens to Join Tournaments</h4>
-                  <p className="text-gray-300 text-sm">You need tokens to participate in tournaments. Buy tokens using JazzCash or EasyPaisa.</p>
+                  <p className="text-gray-300 text-sm">You need tokens to participate in tournaments. Buy tokens using JazzCash.</p>
                 </div>
                 <button
                   onClick={() => setShowPaymentModal(true)}
-                  className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2"
+                  className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2"
                 >
                   <DollarSign className="w-4 h-4" />
                   Buy Tokens
@@ -252,7 +264,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       isJoined 
                         ? 'bg-green-600 text-white cursor-default' 
                         : (currentPlayer?.tokens || 0) === 0
-                        ? 'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white'
+                        ? 'bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white'
                         : canJoin
                         ? 'bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-black'
                         : 'bg-gray-600 text-gray-400 cursor-not-allowed'
@@ -360,115 +372,92 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <p className="text-gray-300 text-sm">1 Token = 1 PKR</p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowPaymentModal(true)}
-                className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold py-4 px-6 rounded-xl transition-all flex items-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-105"
-              >
-                <Plus className="w-5 h-5" />
-                Buy Tokens
-              </button>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => setShowPaymentModal(true)}
+                  className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold py-3 px-6 rounded-xl transition-all flex items-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <Plus className="w-5 h-5" />
+                  Buy Tokens
+                </button>
+                <button
+                  onClick={() => setShowWithdrawalModal(true)}
+                  disabled={(currentPlayer?.tokens || 0) < 50}
+                  className="bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 disabled:from-gray-600 disabled:to-gray-600 text-white font-bold py-3 px-6 rounded-xl transition-all flex items-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed"
+                >
+                  <Send className="w-5 h-5" />
+                  Withdraw
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Payment Methods Section */}
-          <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl border border-blue-500/30 p-8">
+          {/* Payment Method Section */}
+          <div className="bg-gradient-to-br from-red-500/10 to-orange-500/10 rounded-2xl border border-red-500/30 p-8">
             <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Smartphone className="w-10 h-10 text-blue-400" />
+              <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Smartphone className="w-10 h-10 text-red-400" />
               </div>
-              <h4 className="text-2xl font-bold text-white mb-2">Buy Tokens with Mobile Payments</h4>
+              <h4 className="text-2xl font-bold text-white mb-2">Buy Tokens with JazzCash</h4>
               <p className="text-gray-300">Instant AI verification • Secure payments • 24/7 available</p>
             </div>
 
-            {/* Payment Methods Grid */}
-            <div className="grid md:grid-cols-2 gap-6 mb-8">
-              {/* JazzCash */}
-              <div className="bg-gradient-to-br from-red-500/10 to-orange-500/10 border border-red-500/30 rounded-xl p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
-                    <Smartphone className="w-6 h-6 text-red-400" />
-                  </div>
-                  <div>
-                    <h5 className="text-white font-bold">JazzCash</h5>
-                    <p className="text-gray-400 text-sm">Mobile wallet payment</p>
-                  </div>
+            {/* JazzCash Payment Method */}
+            <div className="bg-gradient-to-br from-red-500/10 to-orange-500/10 border border-red-500/30 rounded-xl p-6 mb-8">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
+                  <Smartphone className="w-6 h-6 text-red-400" />
                 </div>
-                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-red-400 font-mono font-bold">03092198628</span>
-                    <button
-                      onClick={() => copyToClipboard('03092198628', 'jazzcash')}
-                      className="p-2 text-gray-400 hover:text-white transition-colors"
-                    >
-                      {copiedText === 'jazzcash' ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                  </div>
+                <div>
+                  <h5 className="text-white font-bold">JazzCash</h5>
+                  <p className="text-gray-400 text-sm">Mobile wallet payment</p>
                 </div>
-                <button
-                  onClick={() => setShowPaymentModal(true)}
-                  className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-400 font-semibold py-2 px-4 rounded-lg transition-colors"
-                >
-                  Pay with JazzCash
-                </button>
               </div>
-
-              {/* EasyPaisa */}
-              <div className="bg-gradient-to-br from-green-500/10 to-blue-500/10 border border-green-500/30 rounded-xl p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
-                    <Smartphone className="w-6 h-6 text-green-400" />
-                  </div>
-                  <div>
-                    <h5 className="text-white font-bold">EasyPaisa</h5>
-                    <p className="text-gray-400 text-sm">Mobile wallet payment</p>
-                  </div>
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-red-400 font-mono font-bold">03092198628</span>
+                  <button
+                    onClick={() => copyToClipboard('03092198628', 'jazzcash')}
+                    className="p-2 text-gray-400 hover:text-white transition-colors"
+                  >
+                    {copiedText === 'jazzcash' ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                  </button>
                 </div>
-                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-green-400 font-mono font-bold">03092198628</span>
-                    <button
-                      onClick={() => copyToClipboard('03092198628', 'easypaisa')}
-                      className="p-2 text-gray-400 hover:text-white transition-colors"
-                    >
-                      {copiedText === 'easypaisa' ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowPaymentModal(true)}
-                  className="w-full bg-green-500/20 hover:bg-green-500/30 text-green-400 font-semibold py-2 px-4 rounded-lg transition-colors"
-                >
-                  Pay with EasyPaisa
-                </button>
               </div>
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-400 font-semibold py-2 px-4 rounded-lg transition-colors"
+              >
+                Pay with JazzCash
+              </button>
             </div>
 
             {/* How it Works */}
             <div className="grid md:grid-cols-4 gap-6 mb-8">
               <div className="text-center">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-blue-400 font-bold text-lg">1</span>
+                <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="text-red-400 font-bold text-lg">1</span>
                 </div>
                 <h5 className="text-white font-semibold mb-2">Send Money</h5>
-                <p className="text-gray-400 text-sm">Transfer PKR to our mobile number</p>
+                <p className="text-gray-400 text-sm">Transfer PKR to our JazzCash number</p>
               </div>
               <div className="text-center">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-blue-400 font-bold text-lg">2</span>
+                <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="text-red-400 font-bold text-lg">2</span>
                 </div>
                 <h5 className="text-white font-semibold mb-2">Screenshot</h5>
                 <p className="text-gray-400 text-sm">Take photo of payment confirmation</p>
               </div>
               <div className="text-center">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-blue-400 font-bold text-lg">3</span>
+                <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="text-red-400 font-bold text-lg">3</span>
                 </div>
                 <h5 className="text-white font-semibold mb-2">Upload</h5>
                 <p className="text-gray-400 text-sm">Submit via our secure form</p>
               </div>
               <div className="text-center">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Zap className="text-blue-400" size={20} />
+                <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Zap className="text-red-400" size={20} />
                 </div>
                 <h5 className="text-white font-semibold mb-2">AI Verify</h5>
                 <p className="text-gray-400 text-sm">Instant token credit</p>
@@ -479,7 +468,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             <div className="text-center">
               <button
                 onClick={() => setShowPaymentModal(true)}
-                className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold py-4 px-8 rounded-xl transition-all flex items-center gap-3 mx-auto shadow-lg hover:shadow-xl transform hover:scale-105"
+                className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold py-4 px-8 rounded-xl transition-all flex items-center gap-3 mx-auto shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 <CreditCard className="w-5 h-5" />
                 Start Token Purchase
@@ -490,94 +479,139 @@ const Dashboard: React.FC<DashboardProps> = ({
               </p>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Quick Purchase Options */}
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-6 text-center">
-              <div className="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Coins className="w-6 h-6 text-yellow-400" />
+      {activeTab === 'exchange' && (
+        <div className="space-y-8">
+          <h3 className="text-2xl font-bold text-white">Token Exchange</h3>
+          
+          {/* Exchange Overview */}
+          <div className="bg-gradient-to-br from-blue-500/10 to-green-500/10 rounded-2xl border border-blue-500/30 p-8">
+            <div className="text-center mb-8">
+              <div className="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <ArrowUpDown className="w-10 h-10 text-blue-400" />
               </div>
-              <h5 className="text-white font-bold mb-2">Starter Pack</h5>
-              <p className="text-2xl font-bold text-yellow-400 mb-2">100 Tokens</p>
-              <p className="text-gray-400 text-sm mb-4">Perfect for 5 tournaments</p>
-              <button
-                onClick={() => setShowPaymentModal(true)}
-                className="w-full bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 font-semibold py-2 px-4 rounded-lg transition-colors"
-              >
-                Buy for 100 PKR
-              </button>
+              <h4 className="text-2xl font-bold text-white mb-2">Exchange Your Tokens</h4>
+              <p className="text-gray-300">Convert your tokens back to PKR and withdraw to your mobile wallet</p>
             </div>
-            
-            <div className="bg-gray-800/50 rounded-xl border border-orange-500/50 p-6 text-center relative">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <span className="bg-orange-500 text-black text-xs font-bold px-3 py-1 rounded-full">POPULAR</span>
-              </div>
-              <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Coins className="w-6 h-6 text-orange-400" />
-              </div>
-              <h5 className="text-white font-bold mb-2">Pro Pack</h5>
-              <p className="text-2xl font-bold text-orange-400 mb-2">500 Tokens</p>
-              <p className="text-gray-400 text-sm mb-4">Best value for serious players</p>
-              <button
-                onClick={() => setShowPaymentModal(true)}
-                className="w-full bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 font-semibold py-2 px-4 rounded-lg transition-colors"
-              >
-                Buy for 500 PKR
-              </button>
-            </div>
-            
-            <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-6 text-center">
-              <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Coins className="w-6 h-6 text-purple-400" />
-              </div>
-              <h5 className="text-white font-bold mb-2">Champion Pack</h5>
-              <p className="text-2xl font-bold text-purple-400 mb-2">1000 Tokens</p>
-              <p className="text-gray-400 text-sm mb-4">For tournament champions</p>
-              <button
-                onClick={() => setShowPaymentModal(true)}
-                className="w-full bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 font-semibold py-2 px-4 rounded-lg transition-colors"
-              >
-                Buy for 1000 PKR
-              </button>
-            </div>
-          </div>
 
-          {/* Withdrawal Section */}
-          <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-6">
-            <h4 className="text-white font-bold mb-4 flex items-center gap-2">
-              <ArrowRight className="w-5 h-5 text-gray-400 rotate-180" />
-              Withdraw Tokens
-            </h4>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <p className="text-gray-400 text-sm mb-4">
-                  Convert your tokens back to PKR. Minimum withdrawal: 50 tokens
-                </p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Current Balance */}
+              <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
+                <h5 className="text-white font-bold mb-4 flex items-center gap-2">
+                  <Coins className="w-5 h-5 text-yellow-400" />
+                  Your Token Balance
+                </h5>
+                <div className="text-center">
+                  <p className="text-4xl font-bold text-yellow-400 mb-2">{currentPlayer?.tokens || 0}</p>
+                  <p className="text-gray-400 text-sm">Available Tokens</p>
+                  <p className="text-white font-semibold mt-2">= {currentPlayer?.tokens || 0} PKR</p>
+                </div>
+              </div>
+
+              {/* Withdrawal Options */}
+              <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
+                <h5 className="text-white font-bold mb-4 flex items-center gap-2">
+                  <Send className="w-5 h-5 text-green-400" />
+                  Withdrawal Options
+                </h5>
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Minimum Withdrawal:</span>
+                    <span className="text-white">50 tokens</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Processing Time:</span>
                     <span className="text-white">24-48 hours</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Minimum Amount:</span>
-                    <span className="text-white">50 tokens</span>
-                  </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Service Fee:</span>
                     <span className="text-white">2% (min 5 tokens)</span>
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Exchange Rate:</span>
+                    <span className="text-white">1 Token = 1 PKR</span>
+                  </div>
                 </div>
               </div>
-              <div className="text-center">
-                <button 
+            </div>
+
+            {/* Withdrawal Methods */}
+            <div className="grid md:grid-cols-2 gap-6 mt-8">
+              {/* JazzCash Withdrawal */}
+              <div className="bg-gradient-to-br from-red-500/10 to-orange-500/10 border border-red-500/30 rounded-xl p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
+                    <Smartphone className="w-6 h-6 text-red-400" />
+                  </div>
+                  <div>
+                    <h6 className="text-white font-bold">JazzCash Withdrawal</h6>
+                    <p className="text-gray-400 text-sm">Withdraw to your JazzCash account</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowWithdrawalModal(true)}
                   disabled={(currentPlayer?.tokens || 0) < 50}
-                  className="w-full bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:text-gray-500 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+                  className="w-full bg-red-500/20 hover:bg-red-500/30 disabled:bg-gray-600/20 disabled:text-gray-500 text-red-400 font-semibold py-3 px-4 rounded-lg transition-colors"
                 >
-                  Request Withdrawal
+                  {(currentPlayer?.tokens || 0) < 50 ? 'Insufficient Balance' : 'Withdraw to JazzCash'}
                 </button>
-                <p className="text-gray-500 text-xs mt-2">
-                  {(currentPlayer?.tokens || 0) < 50 ? 'Insufficient balance' : 'Available for withdrawal'}
-                </p>
+              </div>
+
+              {/* EasyPaisa Withdrawal */}
+              <div className="bg-gradient-to-br from-green-500/10 to-blue-500/10 border border-green-500/30 rounded-xl p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
+                    <Smartphone className="w-6 h-6 text-green-400" />
+                  </div>
+                  <div>
+                    <h6 className="text-white font-bold">EasyPaisa Withdrawal</h6>
+                    <p className="text-gray-400 text-sm">Withdraw to your EasyPaisa account</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowWithdrawalModal(true)}
+                  disabled={(currentPlayer?.tokens || 0) < 50}
+                  className="w-full bg-green-500/20 hover:bg-green-500/30 disabled:bg-gray-600/20 disabled:text-gray-500 text-green-400 font-semibold py-3 px-4 rounded-lg transition-colors"
+                >
+                  {(currentPlayer?.tokens || 0) < 50 ? 'Insufficient Balance' : 'Withdraw to EasyPaisa'}
+                </button>
+              </div>
+            </div>
+
+            {/* Exchange Process */}
+            <div className="mt-8 bg-slate-800/30 rounded-xl p-6">
+              <h5 className="text-white font-bold mb-4">How Token Exchange Works</h5>
+              <div className="grid md:grid-cols-4 gap-6">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <span className="text-blue-400 font-bold text-lg">1</span>
+                  </div>
+                  <h6 className="text-white font-semibold mb-2">Request</h6>
+                  <p className="text-gray-400 text-sm">Submit withdrawal request with your mobile number</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <span className="text-blue-400 font-bold text-lg">2</span>
+                  </div>
+                  <h6 className="text-white font-semibold mb-2">Review</h6>
+                  <p className="text-gray-400 text-sm">Admin reviews and approves your request</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <span className="text-blue-400 font-bold text-lg">3</span>
+                  </div>
+                  <h6 className="text-white font-semibold mb-2">Process</h6>
+                  <p className="text-gray-400 text-sm">Money is sent to your mobile wallet</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <CheckCircle className="text-blue-400" size={20} />
+                  </div>
+                  <h6 className="text-white font-semibold mb-2">Complete</h6>
+                  <p className="text-gray-400 text-sm">Receive confirmation and funds</p>
+                </div>
               </div>
             </div>
           </div>
@@ -600,6 +634,13 @@ const Dashboard: React.FC<DashboardProps> = ({
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         onPaymentSubmit={handlePaymentSubmit}
+      />
+
+      {/* Withdrawal Modal */}
+      <WithdrawalModal
+        isOpen={showWithdrawalModal}
+        onClose={() => setShowWithdrawalModal(false)}
+        currentTokens={currentPlayer?.tokens || 0}
       />
     </div>
   );

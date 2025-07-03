@@ -8,24 +8,19 @@ interface PaymentModalProps {
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentSubmit }) => {
-  const [step, setStep] = useState<'method' | 'instructions' | 'upload' | 'processing' | 'success'>('method');
-  const [paymentMethod, setPaymentMethod] = useState<'jazzcash' | 'easypaisa' | null>(null);
+  const [step, setStep] = useState<'instructions' | 'upload' | 'processing' | 'success'>('instructions');
   const [amount, setAmount] = useState<number>(0);
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [loading, setLoading] = useState(false);
-  const [copiedNumber, setCopiedNumber] = useState(false);
+  const [copiedJazzCash, setCopiedJazzCash] = useState(false);
 
-  const paymentNumbers = {
-    jazzcash: '03092198628',
-    easypaisa: '03092198628'
-  };
+  const jazzCashNumber = '03092198628';
 
-  const copyPaymentNumber = () => {
-    const number = paymentMethod ? paymentNumbers[paymentMethod] : '';
-    navigator.clipboard.writeText(number);
-    setCopiedNumber(true);
-    setTimeout(() => setCopiedNumber(false), 2000);
+  const copyJazzCashNumber = () => {
+    navigator.clipboard.writeText(jazzCashNumber);
+    setCopiedJazzCash(true);
+    setTimeout(() => setCopiedJazzCash(false), 2000);
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,8 +58,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
   };
 
   const resetModal = () => {
-    setStep('method');
-    setPaymentMethod(null);
+    setStep('instructions');
     setAmount(0);
     setScreenshot(null);
     setPreviewUrl('');
@@ -97,106 +91,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
 
         {/* Content */}
         <div className="p-6">
-          {step === 'method' && (
+          {step === 'instructions' && (
             <div className="space-y-6">
               <div className="text-center">
-                <div className="w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Smartphone className="w-8 h-8 text-orange-400" />
+                <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Smartphone className="w-8 h-8 text-red-400" />
                 </div>
-                <h3 className="text-lg font-bold text-white mb-2">Choose Payment Method</h3>
-                <p className="text-gray-400 text-sm">Select your preferred mobile payment service</p>
-              </div>
-
-              <div className="space-y-4">
-                {/* JazzCash Option */}
-                <button
-                  onClick={() => {
-                    setPaymentMethod('jazzcash');
-                    setStep('instructions');
-                  }}
-                  className="w-full bg-gradient-to-r from-red-500/20 to-orange-500/20 hover:from-red-500/30 hover:to-orange-500/30 border border-red-500/30 rounded-xl p-6 transition-all group"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
-                        <Smartphone className="w-6 h-6 text-red-400" />
-                      </div>
-                      <div className="text-left">
-                        <h4 className="text-white font-bold">JazzCash</h4>
-                        <p className="text-gray-400 text-sm">Mobile wallet payment</p>
-                      </div>
-                    </div>
-                    <div className="text-red-400 group-hover:translate-x-1 transition-transform">
-                      →
-                    </div>
-                  </div>
-                </button>
-
-                {/* EasyPaisa Option */}
-                <button
-                  onClick={() => {
-                    setPaymentMethod('easypaisa');
-                    setStep('instructions');
-                  }}
-                  className="w-full bg-gradient-to-r from-green-500/20 to-blue-500/20 hover:from-green-500/30 hover:to-blue-500/30 border border-green-500/30 rounded-xl p-6 transition-all group"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
-                        <Smartphone className="w-6 h-6 text-green-400" />
-                      </div>
-                      <div className="text-left">
-                        <h4 className="text-white font-bold">EasyPaisa</h4>
-                        <p className="text-gray-400 text-sm">Mobile wallet payment</p>
-                      </div>
-                    </div>
-                    <div className="text-green-400 group-hover:translate-x-1 transition-transform">
-                      →
-                    </div>
-                  </div>
-                </button>
-              </div>
-
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Zap className="w-4 h-4 text-blue-400" />
-                  <span className="text-blue-400 font-semibold text-sm">AI-Powered Verification</span>
-                </div>
-                <p className="text-gray-400 text-xs">
-                  Our advanced AI instantly verifies your payment screenshot and credits tokens automatically
-                </p>
-              </div>
-            </div>
-          )}
-
-          {step === 'instructions' && paymentMethod && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-                  paymentMethod === 'jazzcash' ? 'bg-red-500/20' : 'bg-green-500/20'
-                }`}>
-                  <Smartphone className={`w-8 h-8 ${
-                    paymentMethod === 'jazzcash' ? 'text-red-400' : 'text-green-400'
-                  }`} />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-2">
-                  {paymentMethod === 'jazzcash' ? 'JazzCash' : 'EasyPaisa'} Payment
-                </h3>
+                <h3 className="text-lg font-bold text-white mb-2">JazzCash Payment</h3>
                 <p className="text-gray-400 text-sm">1 Token = 1 PKR</p>
               </div>
 
-              <div className={`border-2 rounded-lg p-4 ${
-                paymentMethod === 'jazzcash' 
-                  ? 'bg-red-500/10 border-red-500/30' 
-                  : 'bg-green-500/10 border-green-500/30'
-              }`}>
-                <h4 className={`font-semibold mb-3 ${
-                  paymentMethod === 'jazzcash' ? 'text-red-400' : 'text-green-400'
-                }`}>
-                  Payment Instructions:
-                </h4>
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                <h4 className="text-red-400 font-semibold mb-3">Payment Instructions:</h4>
                 <ol className="text-gray-300 text-sm space-y-2 list-decimal list-inside">
-                  <li>Send money to our {paymentMethod === 'jazzcash' ? 'JazzCash' : 'EasyPaisa'} number</li>
+                  <li>Send money to our JazzCash number</li>
                   <li>Take a screenshot of the payment confirmation</li>
                   <li>Upload the screenshot here</li>
                   <li>Our AI will verify and credit tokens automatically</li>
@@ -204,24 +112,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
               </div>
 
               <div className="bg-gray-800/50 rounded-lg p-4">
-                <label className="block text-gray-300 text-sm mb-2">
-                  {paymentMethod === 'jazzcash' ? 'JazzCash' : 'EasyPaisa'} Number:
-                </label>
-                <div className={`flex items-center justify-between border-2 rounded p-3 ${
-                  paymentMethod === 'jazzcash' 
-                    ? 'bg-red-500/10 border-red-500/30' 
-                    : 'bg-green-500/10 border-green-500/30'
-                }`}>
-                  <span className={`font-mono font-bold text-lg ${
-                    paymentMethod === 'jazzcash' ? 'text-red-400' : 'text-green-400'
-                  }`}>
-                    {paymentNumbers[paymentMethod]}
-                  </span>
+                <label className="block text-gray-300 text-sm mb-2">JazzCash Number:</label>
+                <div className="flex items-center justify-between bg-red-500/10 border border-red-500/30 rounded p-3">
+                  <span className="text-red-400 font-mono font-bold text-lg">{jazzCashNumber}</span>
                   <button
-                    onClick={copyPaymentNumber}
+                    onClick={copyJazzCashNumber}
                     className="p-2 text-gray-400 hover:text-white transition-colors"
                   >
-                    {copiedNumber ? <CheckCircle className="w-5 h-5 text-green-400" /> : <Copy className="w-5 h-5" />}
+                    {copiedJazzCash ? <CheckCircle className="w-5 h-5 text-green-400" /> : <Copy className="w-5 h-5" />}
                   </button>
                 </div>
               </div>
@@ -241,21 +139,23 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                 </p>
               </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setStep('method')}
-                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 px-4 rounded-lg transition-colors"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={() => setStep('upload')}
-                  disabled={amount <= 0}
-                  className="flex-1 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 disabled:from-gray-600 disabled:to-gray-600 text-black font-bold py-3 px-4 rounded-lg transition-all disabled:cursor-not-allowed"
-                >
-                  Continue to Upload
-                </button>
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="w-4 h-4 text-blue-400" />
+                  <span className="text-blue-400 font-semibold text-sm">AI-Powered Verification</span>
+                </div>
+                <p className="text-gray-400 text-xs">
+                  Our advanced AI instantly verifies your payment screenshot and credits tokens automatically
+                </p>
               </div>
+
+              <button
+                onClick={() => setStep('upload')}
+                disabled={amount <= 0}
+                className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 disabled:from-gray-600 disabled:to-gray-600 text-black font-bold py-3 px-4 rounded-lg transition-all disabled:cursor-not-allowed"
+              >
+                Continue to Upload
+              </button>
             </div>
           )}
 
@@ -266,9 +166,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                   <Upload className="w-8 h-8 text-blue-400" />
                 </div>
                 <h3 className="text-lg font-bold text-white mb-2">Upload Payment Screenshot</h3>
-                <p className="text-gray-400 text-sm">
-                  Amount: {amount} PKR → {amount} Tokens via {paymentMethod === 'jazzcash' ? 'JazzCash' : 'EasyPaisa'}
-                </p>
+                <p className="text-gray-400 text-sm">Amount: {amount} PKR → {amount} Tokens</p>
               </div>
 
               <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center">
@@ -331,9 +229,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
               </div>
               <div>
                 <h3 className="text-lg font-bold text-white mb-2">Processing Payment</h3>
-                <p className="text-gray-400 text-sm mb-4">
-                  Our AI is verifying your {paymentMethod === 'jazzcash' ? 'JazzCash' : 'EasyPaisa'} payment screenshot...
-                </p>
+                <p className="text-gray-400 text-sm mb-4">Our AI is verifying your JazzCash payment screenshot...</p>
                 <div className="space-y-2 text-left max-w-xs mx-auto">
                   <div className="flex items-center gap-2 text-sm">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -360,7 +256,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
               <div>
                 <h3 className="text-lg font-bold text-white mb-2">Payment Verified!</h3>
                 <p className="text-gray-400 text-sm mb-4">
-                  {amount} tokens have been added to your account via {paymentMethod === 'jazzcash' ? 'JazzCash' : 'EasyPaisa'}
+                  {amount} tokens have been added to your account
                 </p>
                 <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
                   <p className="text-green-400 font-semibold">

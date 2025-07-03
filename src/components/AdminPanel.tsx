@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Users, Coins, Trophy, Settings, Play, Award, Clock, Trash2, Eye, EyeOff, Save, X, Check, AlertTriangle, DollarSign, Calendar, MapPin, Crown, Target, Zap, Activity, Database } from 'lucide-react';
+import { Plus, Edit, Users, Coins, Trophy, Settings, Play, Award, Clock, Trash2, Eye, EyeOff, Save, X, Check, AlertTriangle, DollarSign, Calendar, MapPin, Crown, Target, Zap, Activity, Database, Image, Download, ExternalLink, ArrowUpDown } from 'lucide-react';
 import { Tournament, Player } from '../types';
-import { getUserActivityLogs, getTokenTransactions } from '../firebase/firestore';
 
 interface AdminPanelProps {
   tournaments: Tournament[];
@@ -11,6 +10,32 @@ interface AdminPanelProps {
   onAddTokens: (playerId: string, amount: number, reason: string) => void;
 }
 
+interface PaymentSubmission {
+  id: string;
+  playerId: string;
+  playerEmail: string;
+  playerName: string;
+  amount: number;
+  paymentMethod: 'jazzcash' | 'easypaisa';
+  screenshot: string; // Base64 or URL
+  timestamp: string;
+  status: 'pending' | 'approved' | 'rejected';
+  adminNotes?: string;
+}
+
+interface WithdrawalRequest {
+  id: string;
+  playerId: string;
+  playerEmail: string;
+  playerName: string;
+  amount: number;
+  paymentMethod: 'jazzcash' | 'easypaisa';
+  accountNumber: string;
+  timestamp: string;
+  status: 'pending' | 'approved' | 'rejected';
+  adminNotes?: string;
+}
+
 const AdminPanel: React.FC<AdminPanelProps> = ({
   tournaments,
   players,
@@ -18,15 +43,42 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   onUpdateTournament,
   onAddTokens
 }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'tournaments' | 'players' | 'matches' | 'tokens' | 'analytics' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'tournaments' | 'players' | 'payments' | 'withdrawals' | 'analytics'>('dashboard');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingTournament, setEditingTournament] = useState<Tournament | null>(null);
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [bulkTokenAmount, setBulkTokenAmount] = useState(0);
   const [bulkTokenReason, setBulkTokenReason] = useState('');
-  const [userActivity, setUserActivity] = useState<any[]>([]);
-  const [tokenTransactions, setTokenTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // Mock data for payment submissions and withdrawals
+  const [paymentSubmissions, setPaymentSubmissions] = useState<PaymentSubmission[]>([
+    {
+      id: 'pay_1',
+      playerId: 'player1',
+      playerEmail: 'player@test.com',
+      playerName: 'Test Player',
+      amount: 500,
+      paymentMethod: 'jazzcash',
+      screenshot: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+      timestamp: new Date().toISOString(),
+      status: 'pending'
+    }
+  ]);
+
+  const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([
+    {
+      id: 'with_1',
+      playerId: 'player1',
+      playerEmail: 'player@test.com',
+      playerName: 'Test Player',
+      amount: 200,
+      paymentMethod: 'jazzcash',
+      accountNumber: '03001234567',
+      timestamp: new Date().toISOString(),
+      status: 'pending'
+    }
+  ]);
   
   const [newTournament, setNewTournament] = useState({
     title: '',
@@ -41,29 +93,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     roomPassword: '',
     rules: ['No cheating allowed', 'Use registered UID only']
   });
-
-  // Load analytics data
-  useEffect(() => {
-    const loadAnalytics = async () => {
-      if (activeTab === 'analytics') {
-        setLoading(true);
-        try {
-          const [activity, transactions] = await Promise.all([
-            getUserActivityLogs(100),
-            getTokenTransactions(100)
-          ]);
-          setUserActivity(activity);
-          setTokenTransactions(transactions);
-        } catch (error) {
-          console.error('Error loading analytics:', error);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadAnalytics();
-  }, [activeTab]);
 
   const handleCreateTournament = () => {
     if (newTournament.title && newTournament.dateTime) {
@@ -108,11 +137,46 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
+  const handlePaymentAction = (paymentId: string, action: 'approve' | 'reject', notes?: string) => {
+    setPaymentSubmissions(prev => prev.map(payment => {
+      if (payment.id === paymentId) {
+        if (action === 'approve') {
+          // Credit tokens to player
+          onAddTokens(payment.playerId, payment.amount, `Payment approved: ${payment.paymentMethod} - ${payment.amount} PKR`);
+        }
+        return {
+          ...payment,
+          status: action === 'approve' ? 'approved' : 'rejected',
+          adminNotes: notes
+        };
+      }
+      return payment;
+    }));
+  };
+
+  const handleWithdrawalAction = (withdrawalId: string, action: 'approve' | 'reject', notes?: string) => {
+    setWithdrawalRequests(prev => prev.map(withdrawal => {
+      if (withdrawal.id === withdrawalId) {
+        if (action === 'approve') {
+          // Deduct tokens from player (already deducted when request was made)
+          // In real app, you would process the actual payment here
+        }
+        return {
+          ...withdrawal,
+          status: action === 'approve' ? 'approved' : 'rejected',
+          adminNotes: notes
+        };
+      }
+      return withdrawal;
+    }));
+  };
+
   const stats = {
     totalTournaments: tournaments.length,
     activeTournaments: tournaments.filter(t => t.status === 'live' || t.status === 'waiting').length,
     totalPlayers: players.length,
-    totalTokensDistributed: tokenTransactions.reduce((sum, t) => sum + (t.amount > 0 ? t.amount : 0), 0),
+    pendingPayments: paymentSubmissions.filter(p => p.status === 'pending').length,
+    pendingWithdrawals: withdrawalRequests.filter(w => w.status === 'pending').length,
     totalSlots: tournaments.reduce((sum, t) => sum + t.maxPlayers, 0),
     filledSlots: tournaments.reduce((sum, t) => sum + t.participants.length, 0)
   };
@@ -127,7 +191,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               <Settings className="text-purple-400" />
               Admin Panel
             </h1>
-            <p className="text-slate-400 mt-2">Manage tournaments, players, and system settings</p>
+            <p className="text-slate-400 mt-2">Manage tournaments, players, payments and system settings</p>
           </div>
         </div>
 
@@ -137,7 +201,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             { id: 'dashboard', label: 'Dashboard', icon: Activity },
             { id: 'tournaments', label: 'Tournaments', icon: Trophy },
             { id: 'players', label: 'Players', icon: Users },
-            { id: 'tokens', label: 'Tokens', icon: Coins },
+            { id: 'payments', label: `Payments (${stats.pendingPayments})`, icon: Image },
+            { id: 'withdrawals', label: `Withdrawals (${stats.pendingWithdrawals})`, icon: ArrowUpDown },
             { id: 'analytics', label: 'Analytics', icon: Database }
           ].map(({ id, label, icon: Icon }) => (
             <button
@@ -181,44 +246,97 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-slate-400 text-sm">Total Players</p>
-                    <p className="text-2xl font-bold text-white">{stats.totalPlayers}</p>
+                    <p className="text-slate-400 text-sm">Pending Payments</p>
+                    <p className="text-2xl font-bold text-white">{stats.pendingPayments}</p>
                   </div>
-                  <Users className="text-blue-400" size={24} />
+                  <Image className="text-orange-400" size={24} />
                 </div>
               </div>
               <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-slate-400 text-sm">Total Slots</p>
-                    <p className="text-2xl font-bold text-white">{stats.filledSlots}/{stats.totalSlots}</p>
+                    <p className="text-slate-400 text-sm">Pending Withdrawals</p>
+                    <p className="text-2xl font-bold text-white">{stats.pendingWithdrawals}</p>
                   </div>
-                  <Target className="text-orange-400" size={24} />
+                  <ArrowUpDown className="text-blue-400" size={24} />
                 </div>
               </div>
             </div>
 
-            {/* Recent Activity */}
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <Activity className="text-purple-400" />
-                Recent Activity
-              </h3>
-              <div className="space-y-3">
-                {tournaments.slice(0, 5).map(tournament => (
-                  <div key={tournament.id} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Trophy className="text-purple-400" size={16} />
-                      <div>
-                        <p className="text-white font-medium">{tournament.title}</p>
-                        <p className="text-slate-400 text-sm">Status: {tournament.status}</p>
+            {/* Quick Actions */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <Image className="text-orange-400" />
+                  Recent Payment Submissions
+                </h3>
+                <div className="space-y-3">
+                  {paymentSubmissions.slice(0, 3).map(payment => (
+                    <div key={payment.id} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-orange-500/20 rounded-full flex items-center justify-center">
+                          <DollarSign className="text-orange-400" size={14} />
+                        </div>
+                        <div>
+                          <p className="text-white font-medium">{payment.playerName}</p>
+                          <p className="text-slate-400 text-sm">{payment.amount} PKR via {payment.paymentMethod}</p>
+                        </div>
                       </div>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        payment.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                        payment.status === 'approved' ? 'bg-green-500/20 text-green-400' :
+                        'bg-red-500/20 text-red-400'
+                      }`}>
+                        {payment.status}
+                      </span>
                     </div>
-                    <span className="text-slate-400 text-sm">
-                      {tournament.participants.length}/{tournament.maxPlayers} players
-                    </span>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                {stats.pendingPayments > 0 && (
+                  <button
+                    onClick={() => setActiveTab('payments')}
+                    className="w-full mt-4 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 py-2 rounded-lg transition-colors"
+                  >
+                    Review All Payments
+                  </button>
+                )}
+              </div>
+
+              <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <ArrowUpDown className="text-blue-400" />
+                  Recent Withdrawal Requests
+                </h3>
+                <div className="space-y-3">
+                  {withdrawalRequests.slice(0, 3).map(withdrawal => (
+                    <div key={withdrawal.id} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+                          <ArrowUpDown className="text-blue-400" size={14} />
+                        </div>
+                        <div>
+                          <p className="text-white font-medium">{withdrawal.playerName}</p>
+                          <p className="text-slate-400 text-sm">{withdrawal.amount} tokens to {withdrawal.paymentMethod}</p>
+                        </div>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        withdrawal.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                        withdrawal.status === 'approved' ? 'bg-green-500/20 text-green-400' :
+                        'bg-red-500/20 text-red-400'
+                      }`}>
+                        {withdrawal.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {stats.pendingWithdrawals > 0 && (
+                  <button
+                    onClick={() => setActiveTab('withdrawals')}
+                    className="w-full mt-4 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 py-2 rounded-lg transition-colors"
+                  >
+                    Review All Withdrawals
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -285,20 +403,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     value={newTournament.dateTime}
                     onChange={(e) => setNewTournament({...newTournament, dateTime: e.target.value})}
                     className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Room ID"
-                    value={newTournament.roomId}
-                    onChange={(e) => setNewTournament({...newTournament, roomId: e.target.value})}
-                    className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Room Password"
-                    value={newTournament.roomPassword}
-                    onChange={(e) => setNewTournament({...newTournament, roomPassword: e.target.value})}
-                    className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <input
@@ -538,43 +642,194 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
         )}
 
-        {/* Tokens Tab */}
-        {activeTab === 'tokens' && (
+        {/* Payment Submissions Tab */}
+        {activeTab === 'payments' && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">Token Management</h2>
+            <h2 className="text-2xl font-bold text-white">Payment Screenshot Reviews</h2>
             
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <DollarSign className="text-yellow-400" />
-                Recent Token Transactions
-              </h3>
-              <div className="space-y-3">
-                {tokenTransactions.slice(0, 10).map((transaction, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        transaction.amount > 0 ? 'bg-green-500/20' : 'bg-red-500/20'
-                      }`}>
-                        {transaction.amount > 0 ? 
-                          <Plus className="text-green-400" size={14} /> : 
-                          <Trash2 className="text-red-400" size={14} />
-                        }
+            <div className="grid gap-6">
+              {paymentSubmissions.map(payment => (
+                <div key={payment.id} className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {/* Payment Details */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-xl font-bold text-white">{payment.playerName}</h3>
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          payment.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                          payment.status === 'approved' ? 'bg-green-500/20 text-green-400' :
+                          'bg-red-500/20 text-red-400'
+                        }`}>
+                          {payment.status.toUpperCase()}
+                        </span>
                       </div>
-                      <div>
-                        <p className="text-white font-medium">{transaction.reason}</p>
-                        <p className="text-slate-400 text-sm">
-                          {new Date(transaction.timestamp).toLocaleString()}
-                        </p>
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Player Email:</span>
+                          <span className="text-white">{payment.playerEmail}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Amount:</span>
+                          <span className="text-white font-bold">{payment.amount} PKR</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Payment Method:</span>
+                          <span className="text-white capitalize">{payment.paymentMethod}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Submitted:</span>
+                          <span className="text-white">{new Date(payment.timestamp).toLocaleString()}</span>
+                        </div>
+                      </div>
+
+                      {payment.status === 'pending' && (
+                        <div className="flex gap-3 pt-4">
+                          <button
+                            onClick={() => handlePaymentAction(payment.id, 'approve')}
+                            className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                          >
+                            <Check size={16} />
+                            Approve & Credit Tokens
+                          </button>
+                          <button
+                            onClick={() => {
+                              const notes = prompt('Enter rejection reason:');
+                              if (notes) handlePaymentAction(payment.id, 'reject', notes);
+                            }}
+                            className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                          >
+                            <X size={16} />
+                            Reject
+                          </button>
+                        </div>
+                      )}
+
+                      {payment.adminNotes && (
+                        <div className="bg-slate-700/50 rounded-lg p-3">
+                          <p className="text-slate-400 text-sm">Admin Notes:</p>
+                          <p className="text-white text-sm">{payment.adminNotes}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Screenshot Preview */}
+                    <div className="space-y-4">
+                      <h4 className="text-white font-semibold">Payment Screenshot</h4>
+                      <div className="bg-slate-700/30 rounded-lg p-4 text-center">
+                        <img
+                          src={payment.screenshot}
+                          alt="Payment screenshot"
+                          className="max-w-full h-64 object-contain mx-auto rounded-lg border border-slate-600"
+                        />
+                        <div className="flex gap-2 mt-4">
+                          <button
+                            onClick={() => window.open(payment.screenshot, '_blank')}
+                            className="flex-1 bg-slate-600 hover:bg-slate-500 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                          >
+                            <ExternalLink size={16} />
+                            View Full Size
+                          </button>
+                          <button
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = payment.screenshot;
+                              link.download = `payment_${payment.id}_${payment.playerName}.png`;
+                              link.click();
+                            }}
+                            className="flex-1 bg-slate-600 hover:bg-slate-500 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                          >
+                            <Download size={16} />
+                            Download
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <span className={`font-bold ${
-                      transaction.amount > 0 ? 'text-green-400' : 'text-red-400'
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Withdrawal Requests Tab */}
+        {activeTab === 'withdrawals' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-white">Token Withdrawal Requests</h2>
+            
+            <div className="grid gap-6">
+              {withdrawalRequests.map(withdrawal => (
+                <div key={withdrawal.id} className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-white">{withdrawal.playerName}</h3>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      withdrawal.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                      withdrawal.status === 'approved' ? 'bg-green-500/20 text-green-400' :
+                      'bg-red-500/20 text-red-400'
                     }`}>
-                      {transaction.amount > 0 ? '+' : ''}{transaction.amount}
+                      {withdrawal.status.toUpperCase()}
                     </span>
                   </div>
-                ))}
-              </div>
+                  
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Player Email:</span>
+                        <span className="text-white">{withdrawal.playerEmail}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Withdrawal Amount:</span>
+                        <span className="text-white font-bold">{withdrawal.amount} tokens</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">PKR Amount:</span>
+                        <span className="text-white font-bold">{withdrawal.amount} PKR</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Payment Method:</span>
+                        <span className="text-white capitalize">{withdrawal.paymentMethod}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Account Number:</span>
+                        <span className="text-white font-mono">{withdrawal.accountNumber}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Requested:</span>
+                        <span className="text-white">{new Date(withdrawal.timestamp).toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    {withdrawal.status === 'pending' && (
+                      <div className="flex flex-col gap-3">
+                        <button
+                          onClick={() => handleWithdrawalAction(withdrawal.id, 'approve')}
+                          className="bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Check size={16} />
+                          Approve & Process Payment
+                        </button>
+                        <button
+                          onClick={() => {
+                            const notes = prompt('Enter rejection reason:');
+                            if (notes) handleWithdrawalAction(withdrawal.id, 'reject', notes);
+                          }}
+                          className="bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                        >
+                          <X size={16} />
+                          Reject Request
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {withdrawal.adminNotes && (
+                    <div className="bg-slate-700/50 rounded-lg p-3 mt-4">
+                      <p className="text-slate-400 text-sm">Admin Notes:</p>
+                      <p className="text-white text-sm">{withdrawal.adminNotes}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -584,38 +839,28 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <div className="space-y-6">
             <h2 className="text-2xl font-bold text-white">Analytics & Reports</h2>
             
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
-              </div>
-            ) : (
-              <div className="grid gap-6">
-                <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-                  <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                    <Activity className="text-purple-400" />
-                    User Activity Logs
-                  </h3>
-                  <div className="space-y-3">
-                    {userActivity.slice(0, 10).map((activity, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center">
-                            <Activity className="text-purple-400" size={14} />
-                          </div>
-                          <div>
-                            <p className="text-white font-medium">{activity.action}</p>
-                            <p className="text-slate-400 text-sm">{activity.userId}</p>
-                          </div>
-                        </div>
-                        <span className="text-slate-400 text-sm">
-                          {new Date(activity.timestamp).toLocaleString()}
-                        </span>
-                      </div>
-                    ))}
+            <div className="grid gap-6">
+              <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <Activity className="text-purple-400" />
+                  System Overview
+                </h3>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="bg-slate-700/30 rounded-lg p-4 text-center">
+                    <p className="text-2xl font-bold text-white">{stats.totalPlayers}</p>
+                    <p className="text-slate-400 text-sm">Total Players</p>
+                  </div>
+                  <div className="bg-slate-700/30 rounded-lg p-4 text-center">
+                    <p className="text-2xl font-bold text-white">{stats.totalTournaments}</p>
+                    <p className="text-slate-400 text-sm">Total Tournaments</p>
+                  </div>
+                  <div className="bg-slate-700/30 rounded-lg p-4 text-center">
+                    <p className="text-2xl font-bold text-white">{Math.round((stats.filledSlots / stats.totalSlots) * 100)}%</p>
+                    <p className="text-slate-400 text-sm">Slot Fill Rate</p>
                   </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>
