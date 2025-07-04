@@ -10,6 +10,7 @@ interface DashboardProps {
   players: Player[];
   onJoinTournament: (tournamentId: string) => void;
   onAddTokens: (playerId: string, amount: number, reason: string) => void;
+  onPaymentSubmit: (amount: number, screenshot: File) => void;
 }
 
 interface SocialMediaBanner {
@@ -27,7 +28,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   currentUser, 
   players, 
   onJoinTournament,
-  onAddTokens
+  onAddTokens,
+  onPaymentSubmit
 }) => {
   const [activeTab, setActiveTab] = useState<'tournaments' | 'matches' | 'wallet' | 'exchange' | 'results'>('tournaments');
   const [copiedText, setCopiedText] = useState<string>('');
@@ -66,12 +68,8 @@ const Dashboard: React.FC<DashboardProps> = ({
     if (!currentPlayer) return;
     
     try {
-      // Simulate AI processing and verification
-      // In a real app, you would upload the screenshot to your backend
-      // and use AI/ML services to verify the payment amount
-      
-      // For demo purposes, we'll automatically credit the tokens
-      await onAddTokens(currentPlayer.id, amount, `JazzCash Payment Verification - ${amount} PKR`);
+      // Submit payment for admin verification (NO AUTO TOKENS)
+      await onPaymentSubmit(amount, screenshot);
       
     } catch (error) {
       console.error('Error processing payment:', error);
@@ -504,7 +502,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <Smartphone className="w-10 h-10 text-red-400" />
               </div>
               <h4 className="text-2xl font-bold text-white mb-2">Buy Tokens with JazzCash</h4>
-              <p className="text-gray-300">Instant AI verification • Secure payments • 24/7 available</p>
+              <p className="text-gray-300">Manual admin verification • Secure payments • 24/7 available</p>
             </div>
 
             {/* JazzCash Payment Method */}
@@ -562,10 +560,10 @@ const Dashboard: React.FC<DashboardProps> = ({
               </div>
               <div className="text-center">
                 <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Zap className="text-red-400" size={20} />
+                  <CheckCircle className="text-red-400" size={20} />
                 </div>
-                <h5 className="text-white font-semibold mb-2">AI Verify</h5>
-                <p className="text-gray-400 text-sm">Instant token credit</p>
+                <h5 className="text-white font-semibold mb-2">Admin Verify</h5>
+                <p className="text-gray-400 text-sm">Manual token credit</p>
               </div>
             </div>
 
@@ -580,7 +578,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <ArrowRight className="w-5 h-5" />
               </button>
               <p className="text-gray-400 text-sm mt-3">
-                ⚡ AI-powered instant verification • 🔒 Secure & encrypted
+                🔒 Admin verified • 🔒 Secure & encrypted
               </p>
             </div>
           </div>

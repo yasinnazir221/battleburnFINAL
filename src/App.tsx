@@ -177,14 +177,35 @@ function App() {
     alert('Successfully joined the tournament!');
   };
 
-  // Handle payment submission (no auto tokens)
+  // Handle payment submission (NO AUTO TOKENS - Admin verification required)
   const handlePaymentSubmit = async (amount: number, screenshot: File) => {
     // In a real app, you would upload the screenshot to your backend
     // and notify admin for manual verification
-    console.log('Payment submitted for verification:', { amount, screenshot });
+    console.log('Payment submitted for admin verification:', { 
+      amount, 
+      screenshot: screenshot.name,
+      user: currentUser?.email,
+      timestamp: new Date().toISOString()
+    });
     
-    // For demo purposes, we'll just log it
-    // Admin will manually add tokens after verification
+    // Store payment request for admin review (in real app, this would go to database)
+    const paymentRequest = {
+      id: `payment_${Date.now()}`,
+      userId: currentUser?.id,
+      userEmail: currentUser?.email,
+      amount,
+      screenshotName: screenshot.name,
+      status: 'pending',
+      submittedAt: new Date().toISOString()
+    };
+    
+    // Save to localStorage for demo (in real app, save to database)
+    const existingRequests = JSON.parse(localStorage.getItem('paymentRequests') || '[]');
+    existingRequests.push(paymentRequest);
+    localStorage.setItem('paymentRequests', JSON.stringify(existingRequests));
+    
+    // NO AUTO TOKEN ADDITION - Admin must manually verify and add tokens
+    console.log('Payment request saved for admin review. NO tokens added automatically.');
   };
 
   if (showSplash) {
@@ -292,6 +313,7 @@ function App() {
             players={players}
             onJoinTournament={handleJoinTournament}
             onAddTokens={addTokensToPlayer}
+            onPaymentSubmit={handlePaymentSubmit}
           />
         ) : (
           <AdminPanel
