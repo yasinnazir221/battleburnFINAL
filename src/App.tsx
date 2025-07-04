@@ -177,6 +177,16 @@ function App() {
     alert('Successfully joined the tournament!');
   };
 
+  // Handle payment submission (no auto tokens)
+  const handlePaymentSubmit = async (amount: number, screenshot: File) => {
+    // In a real app, you would upload the screenshot to your backend
+    // and notify admin for manual verification
+    console.log('Payment submitted for verification:', { amount, screenshot });
+    
+    // For demo purposes, we'll just log it
+    // Admin will manually add tokens after verification
+  };
+
   if (showSplash) {
     return <SplashScreen />;
   }

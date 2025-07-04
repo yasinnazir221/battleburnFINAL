@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Upload, Camera, CheckCircle, Loader, Copy, CreditCard, Smartphone, Zap } from 'lucide-react';
+import { X, Upload, Camera, CheckCircle, Loader, Copy, CreditCard, Smartphone, Zap, AlertTriangle } from 'lucide-react';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -39,9 +39,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
     setStep('processing');
     
     try {
-      // Simulate AI processing delay
+      // Simulate processing delay
       await new Promise(resolve => setTimeout(resolve, 3000));
       
+      // Submit payment for admin verification (no auto tokens)
       onPaymentSubmit(amount, screenshot);
       setStep('success');
       
@@ -49,7 +50,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
       setTimeout(() => {
         onClose();
         resetModal();
-      }, 3000);
+      }, 4000);
     } catch (error) {
       console.error('Payment submission error:', error);
       setLoading(false);
@@ -107,7 +108,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                   <li>Send money to our JazzCash number</li>
                   <li>Take a screenshot of the payment confirmation</li>
                   <li>Upload the screenshot here</li>
-                  <li>Our AI will verify and credit tokens automatically</li>
+                  <li>Admin will verify and credit tokens manually</li>
                 </ol>
               </div>
 
@@ -135,17 +136,17 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                   placeholder="Enter amount in PKR"
                 />
                 <p className="text-gray-400 text-xs mt-2">
-                  You will receive {amount} tokens after verification
+                  You will receive {amount} tokens after admin verification
                 </p>
               </div>
 
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Zap className="w-4 h-4 text-blue-400" />
-                  <span className="text-blue-400 font-semibold text-sm">AI-Powered Verification</span>
+                  <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                  <span className="text-yellow-400 font-semibold text-sm">Manual Verification</span>
                 </div>
                 <p className="text-gray-400 text-xs">
-                  Our advanced AI instantly verifies your payment screenshot and credits tokens automatically
+                  Your payment will be reviewed by admin and tokens will be credited manually after verification
                 </p>
               </div>
 
@@ -216,7 +217,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                   disabled={!screenshot || amount <= 0}
                   className="flex-1 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 disabled:from-gray-600 disabled:to-gray-600 text-black font-bold py-3 px-4 rounded-lg transition-all disabled:cursor-not-allowed"
                 >
-                  Submit Payment
+                  Submit for Verification
                 </button>
               </div>
             </div>
@@ -228,20 +229,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                 <Loader className="w-8 h-8 text-purple-400 animate-spin" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white mb-2">Processing Payment</h3>
-                <p className="text-gray-400 text-sm mb-4">Our AI is verifying your JazzCash payment screenshot...</p>
+                <h3 className="text-lg font-bold text-white mb-2">Submitting Payment</h3>
+                <p className="text-gray-400 text-sm mb-4">Sending your payment details to admin for verification...</p>
                 <div className="space-y-2 text-left max-w-xs mx-auto">
                   <div className="flex items-center gap-2 text-sm">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-gray-300">Analyzing screenshot...</span>
+                    <span className="text-gray-300">Uploading screenshot...</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                    <span className="text-gray-300">Verifying amount...</span>
+                    <span className="text-gray-300">Submitting details...</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                    <span className="text-gray-300">Processing tokens...</span>
+                    <span className="text-gray-300">Notifying admin...</span>
                   </div>
                 </div>
               </div>
@@ -254,13 +255,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                 <CheckCircle className="w-8 h-8 text-green-400" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white mb-2">Payment Verified!</h3>
+                <h3 className="text-lg font-bold text-white mb-2">Payment Submitted!</h3>
                 <p className="text-gray-400 text-sm mb-4">
-                  {amount} tokens have been added to your account
+                  Your payment has been submitted for admin verification
                 </p>
-                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-                  <p className="text-green-400 font-semibold">
-                    +{amount} Tokens Credited
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                  <p className="text-blue-400 font-semibold">
+                    {amount} PKR → {amount} Tokens (Pending Verification)
+                  </p>
+                  <p className="text-gray-400 text-xs mt-2">
+                    Admin will verify and credit tokens manually
                   </p>
                 </div>
               </div>
