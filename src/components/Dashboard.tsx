@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Calendar, Users, Trophy, Coins, Play, Clock, MapPin, Award, Copy, CheckCircle, CreditCard, Smartphone, Zap, ArrowRight, Plus, DollarSign, ArrowUpDown, Send } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, Users, Trophy, Coins, Play, Clock, MapPin, Award, Copy, CheckCircle, CreditCard, Smartphone, Zap, ArrowRight, Plus, DollarSign, ArrowUpDown, Send, Instagram, Youtube, Twitter, Facebook, Globe, Link } from 'lucide-react';
 import { Tournament, User, Player } from '../types';
 import PaymentModal from './PaymentModal';
 import WithdrawalModal from './WithdrawalModal';
@@ -10,6 +10,16 @@ interface DashboardProps {
   players: Player[];
   onJoinTournament: (tournamentId: string) => void;
   onAddTokens: (playerId: string, amount: number, reason: string) => void;
+}
+
+interface SocialMediaBanner {
+  instagram?: string;
+  youtube?: string;
+  twitter?: string;
+  facebook?: string;
+  website?: string;
+  discord?: string;
+  enabled: boolean;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
@@ -23,11 +33,28 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [copiedText, setCopiedText] = useState<string>('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+  const [socialBanner, setSocialBanner] = useState<SocialMediaBanner>({
+    instagram: '',
+    youtube: '',
+    twitter: '',
+    facebook: '',
+    website: '',
+    discord: '',
+    enabled: false
+  });
   
   const currentPlayer = players.find(p => p.email === currentUser.email);
   const userTournaments = tournaments.filter(t => 
     t.participants.includes(currentPlayer?.id || '')
   );
+
+  // Load social banner data
+  useEffect(() => {
+    const savedBanner = localStorage.getItem('socialBanner');
+    if (savedBanner) {
+      setSocialBanner(JSON.parse(savedBanner));
+    }
+  }, []);
 
   const copyToClipboard = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
@@ -78,6 +105,84 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="space-y-8">
+      {/* Social Media Banner */}
+      {socialBanner.enabled && (socialBanner.instagram || socialBanner.youtube || socialBanner.twitter || socialBanner.facebook || socialBanner.website || socialBanner.discord) && (
+        <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-2xl p-6">
+          <div className="text-center mb-4">
+            <h3 className="text-white font-bold text-lg">🔥 Follow Us on Social Media! 🔥</h3>
+            <p className="text-gray-300 text-sm">Stay updated with latest tournaments, tips, and exclusive content</p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-3">
+            {socialBanner.instagram && (
+              <a
+                href={socialBanner.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 px-4 py-2 rounded-lg transition-all transform hover:scale-105"
+              >
+                <Instagram size={18} />
+                Instagram
+              </a>
+            )}
+            {socialBanner.youtube && (
+              <a
+                href={socialBanner.youtube}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 px-4 py-2 rounded-lg transition-all transform hover:scale-105"
+              >
+                <Youtube size={18} />
+                YouTube
+              </a>
+            )}
+            {socialBanner.twitter && (
+              <a
+                href={socialBanner.twitter}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 px-4 py-2 rounded-lg transition-all transform hover:scale-105"
+              >
+                <Twitter size={18} />
+                Twitter
+              </a>
+            )}
+            {socialBanner.facebook && (
+              <a
+                href={socialBanner.facebook}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-500 px-4 py-2 rounded-lg transition-all transform hover:scale-105"
+              >
+                <Facebook size={18} />
+                Facebook
+              </a>
+            )}
+            {socialBanner.website && (
+              <a
+                href={socialBanner.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 px-4 py-2 rounded-lg transition-all transform hover:scale-105"
+              >
+                <Globe size={18} />
+                Website
+              </a>
+            )}
+            {socialBanner.discord && (
+              <a
+                href={socialBanner.discord}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400 px-4 py-2 rounded-lg transition-all transform hover:scale-105"
+              >
+                <Link size={18} />
+                Discord
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-orange-500/10 to-yellow-500/10 rounded-2xl border border-orange-500/20 p-8">
         <div className="flex items-center justify-between">

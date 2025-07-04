@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Users, Coins, Trophy, Settings, Play, Award, Clock, Trash2, Eye, EyeOff, Save, X, Check, AlertTriangle, DollarSign, Calendar, MapPin, Crown, Target, Zap, Activity, Database, Image, Download, ExternalLink, ArrowUpDown } from 'lucide-react';
+import { Plus, Edit, Users, Coins, Trophy, Settings, Play, Award, Clock, Trash2, Eye, EyeOff, Save, X, Check, AlertTriangle, DollarSign, Calendar, MapPin, Crown, Target, Zap, Activity, Database, Image, Download, ExternalLink, ArrowUpDown, Instagram, Youtube, Twitter, Facebook, Globe, Link } from 'lucide-react';
 import { Tournament, Player } from '../types';
 
 interface AdminPanelProps {
@@ -36,6 +36,16 @@ interface WithdrawalRequest {
   adminNotes?: string;
 }
 
+interface SocialMediaBanner {
+  instagram?: string;
+  youtube?: string;
+  twitter?: string;
+  facebook?: string;
+  website?: string;
+  discord?: string;
+  enabled: boolean;
+}
+
 const AdminPanel: React.FC<AdminPanelProps> = ({
   tournaments,
   players,
@@ -43,13 +53,24 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   onUpdateTournament,
   onAddTokens
 }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'tournaments' | 'players' | 'payments' | 'withdrawals' | 'analytics'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'tournaments' | 'players' | 'payments' | 'withdrawals' | 'analytics' | 'banner'>('dashboard');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingTournament, setEditingTournament] = useState<Tournament | null>(null);
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [bulkTokenAmount, setBulkTokenAmount] = useState(0);
   const [bulkTokenReason, setBulkTokenReason] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Social Media Banner State
+  const [socialBanner, setSocialBanner] = useState<SocialMediaBanner>({
+    instagram: '',
+    youtube: '',
+    twitter: '',
+    facebook: '',
+    website: '',
+    discord: '',
+    enabled: true
+  });
   
   // Mock data for payment submissions and withdrawals
   const [paymentSubmissions, setPaymentSubmissions] = useState<PaymentSubmission[]>([
@@ -171,6 +192,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }));
   };
 
+  const handleSaveBanner = () => {
+    // In a real app, you would save this to your backend/database
+    localStorage.setItem('socialBanner', JSON.stringify(socialBanner));
+    alert('Social media banner saved successfully!');
+  };
+
+  // Load banner data on component mount
+  useEffect(() => {
+    const savedBanner = localStorage.getItem('socialBanner');
+    if (savedBanner) {
+      setSocialBanner(JSON.parse(savedBanner));
+    }
+  }, []);
+
   const stats = {
     totalTournaments: tournaments.length,
     activeTournaments: tournaments.filter(t => t.status === 'live' || t.status === 'waiting').length,
@@ -203,6 +238,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             { id: 'players', label: 'Players', icon: Users },
             { id: 'payments', label: `Payments (${stats.pendingPayments})`, icon: Image },
             { id: 'withdrawals', label: `Withdrawals (${stats.pendingWithdrawals})`, icon: ArrowUpDown },
+            { id: 'banner', label: 'Social Banner', icon: Globe },
             { id: 'analytics', label: 'Analytics', icon: Database }
           ].map(({ id, label, icon: Icon }) => (
             <button
@@ -420,6 +456,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
                     />
                   </div>
+                  <input
+                    type="text"
+                    placeholder="Room ID"
+                    value={newTournament.roomId}
+                    onChange={(e) => setNewTournament({...newTournament, roomId: e.target.value})}
+                    className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Room Password"
+                    value={newTournament.roomPassword}
+                    onChange={(e) => setNewTournament({...newTournament, roomPassword: e.target.value})}
+                    className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
+                  />
                   <textarea
                     placeholder="Description"
                     value={newTournament.description}
@@ -451,11 +501,46 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 <div key={tournament.id} className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
                   {editingTournament?.id === tournament.id ? (
                     <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <input
                           type="text"
                           value={editingTournament.title}
                           onChange={(e) => setEditingTournament({...editingTournament, title: e.target.value})}
+                          placeholder="Tournament Title"
+                          className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white"
+                        />
+                        <input
+                          type="number"
+                          value={editingTournament.entryFee}
+                          onChange={(e) => setEditingTournament({...editingTournament, entryFee: parseInt(e.target.value)})}
+                          placeholder="Entry Fee"
+                          className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white"
+                        />
+                        <input
+                          type="number"
+                          value={editingTournament.maxPlayers}
+                          onChange={(e) => setEditingTournament({...editingTournament, maxPlayers: parseInt(e.target.value)})}
+                          placeholder="Max Players"
+                          className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white"
+                        />
+                        <input
+                          type="datetime-local"
+                          value={editingTournament.dateTime}
+                          onChange={(e) => setEditingTournament({...editingTournament, dateTime: e.target.value})}
+                          className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white"
+                        />
+                        <input
+                          type="number"
+                          value={editingTournament.killReward}
+                          onChange={(e) => setEditingTournament({...editingTournament, killReward: parseInt(e.target.value)})}
+                          placeholder="Kill Reward"
+                          className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white"
+                        />
+                        <input
+                          type="number"
+                          value={editingTournament.booyahReward}
+                          onChange={(e) => setEditingTournament({...editingTournament, booyahReward: parseInt(e.target.value)})}
+                          placeholder="Booyah Reward"
                           className="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white"
                         />
                         <input
@@ -482,13 +567,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           <option value="completed">Completed</option>
                         </select>
                       </div>
+                      <textarea
+                        value={editingTournament.description}
+                        onChange={(e) => setEditingTournament({...editingTournament, description: e.target.value})}
+                        placeholder="Description"
+                        className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
+                        rows={3}
+                      />
                       <div className="flex gap-3">
                         <button
                           onClick={() => handleUpdateTournament(tournament, editingTournament)}
                           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
                         >
                           <Save size={16} />
-                          Save
+                          Save Changes
                         </button>
                         <button
                           onClick={() => setEditingTournament(null)}
@@ -513,7 +605,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           </span>
                         </div>
                         <p className="text-slate-400 mb-3">{tournament.description}</p>
-                        <div className="flex flex-wrap gap-4 text-sm">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                           <span className="text-slate-300 flex items-center gap-1">
                             <Users size={14} />
                             {tournament.participants.length}/{tournament.maxPlayers}
@@ -521,6 +613,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           <span className="text-slate-300 flex items-center gap-1">
                             <Coins size={14} />
                             {tournament.entryFee} tokens
+                          </span>
+                          <span className="text-slate-300 flex items-center gap-1">
+                            <Target size={14} />
+                            {tournament.killReward} per kill
+                          </span>
+                          <span className="text-slate-300 flex items-center gap-1">
+                            <Crown size={14} />
+                            {tournament.booyahReward} booyah
                           </span>
                           <span className="text-slate-300 flex items-center gap-1">
                             <Calendar size={14} />
@@ -538,6 +638,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         <button
                           onClick={() => setEditingTournament(tournament)}
                           className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+                          title="Edit Tournament"
                         >
                           <Edit size={16} />
                         </button>
@@ -831,6 +932,210 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Social Media Banner Tab */}
+        {activeTab === 'banner' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-white">Social Media Banner</h2>
+              <button
+                onClick={handleSaveBanner}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+              >
+                <Save size={18} />
+                Save Banner
+              </button>
+            </div>
+
+            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-white">Banner Settings</h3>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={socialBanner.enabled}
+                    onChange={(e) => setSocialBanner({...socialBanner, enabled: e.target.checked})}
+                    className="w-4 h-4 text-purple-600 bg-slate-700 border-slate-600 rounded focus:ring-purple-500"
+                  />
+                  <span className="text-white">Enable Banner</span>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Instagram */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-white font-medium">
+                    <Instagram className="text-pink-400" size={20} />
+                    Instagram
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://instagram.com/yourusername"
+                    value={socialBanner.instagram}
+                    onChange={(e) => setSocialBanner({...socialBanner, instagram: e.target.value})}
+                    className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
+                  />
+                </div>
+
+                {/* YouTube */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-white font-medium">
+                    <Youtube className="text-red-400" size={20} />
+                    YouTube
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://youtube.com/@yourchannel"
+                    value={socialBanner.youtube}
+                    onChange={(e) => setSocialBanner({...socialBanner, youtube: e.target.value})}
+                    className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
+                  />
+                </div>
+
+                {/* Twitter */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-white font-medium">
+                    <Twitter className="text-blue-400" size={20} />
+                    Twitter/X
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://twitter.com/yourusername"
+                    value={socialBanner.twitter}
+                    onChange={(e) => setSocialBanner({...socialBanner, twitter: e.target.value})}
+                    className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
+                  />
+                </div>
+
+                {/* Facebook */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-white font-medium">
+                    <Facebook className="text-blue-500" size={20} />
+                    Facebook
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://facebook.com/yourpage"
+                    value={socialBanner.facebook}
+                    onChange={(e) => setSocialBanner({...socialBanner, facebook: e.target.value})}
+                    className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
+                  />
+                </div>
+
+                {/* Website */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-white font-medium">
+                    <Globe className="text-green-400" size={20} />
+                    Website
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://yourwebsite.com"
+                    value={socialBanner.website}
+                    onChange={(e) => setSocialBanner({...socialBanner, website: e.target.value})}
+                    className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
+                  />
+                </div>
+
+                {/* Discord */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-white font-medium">
+                    <Link className="text-indigo-400" size={20} />
+                    Discord
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://discord.gg/yourinvite"
+                    value={socialBanner.discord}
+                    onChange={(e) => setSocialBanner({...socialBanner, discord: e.target.value})}
+                    className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Preview */}
+            {socialBanner.enabled && (
+              <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
+                <h3 className="text-xl font-bold text-white mb-4">Banner Preview</h3>
+                <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-xl p-6">
+                  <div className="text-center mb-4">
+                    <h4 className="text-white font-bold text-lg">Follow Us on Social Media!</h4>
+                    <p className="text-slate-300 text-sm">Stay updated with latest tournaments and news</p>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-4">
+                    {socialBanner.instagram && (
+                      <a
+                        href={socialBanner.instagram}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 px-4 py-2 rounded-lg transition-colors"
+                      >
+                        <Instagram size={18} />
+                        Instagram
+                      </a>
+                    )}
+                    {socialBanner.youtube && (
+                      <a
+                        href={socialBanner.youtube}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 px-4 py-2 rounded-lg transition-colors"
+                      >
+                        <Youtube size={18} />
+                        YouTube
+                      </a>
+                    )}
+                    {socialBanner.twitter && (
+                      <a
+                        href={socialBanner.twitter}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 px-4 py-2 rounded-lg transition-colors"
+                      >
+                        <Twitter size={18} />
+                        Twitter
+                      </a>
+                    )}
+                    {socialBanner.facebook && (
+                      <a
+                        href={socialBanner.facebook}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-500 px-4 py-2 rounded-lg transition-colors"
+                      >
+                        <Facebook size={18} />
+                        Facebook
+                      </a>
+                    )}
+                    {socialBanner.website && (
+                      <a
+                        href={socialBanner.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 px-4 py-2 rounded-lg transition-colors"
+                      >
+                        <Globe size={18} />
+                        Website
+                      </a>
+                    )}
+                    {socialBanner.discord && (
+                      <a
+                        href={socialBanner.discord}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400 px-4 py-2 rounded-lg transition-colors"
+                      >
+                        <Link size={18} />
+                        Discord
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
