@@ -29,8 +29,9 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       if (isLogin) {
-        // Mock login - check for admin
-        const isAdmin = formData.email.toLowerCase().includes('admin');
+        // Mock login - check for admin with new credentials
+        const isAdmin = (formData.email.toLowerCase() === 'adminmaster@battleburn.com' && formData.password === 'BurnFF@2025!') ||
+                        formData.email.toLowerCase().includes('admin');
         
         onLogin({
           id: `user_${Date.now()}`,
@@ -86,11 +87,11 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
             <p className="text-gray-400 mt-2">
               {isLogin ? 'Sign in to your tournament account' : 'Create your Free Fire tournament account'}
             </p>
-            {/* Demo credentials */}
+            {/* Demo credentials - REMOVE THIS WHEN IMPLEMENTING REAL API */}
             <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-              <p className="text-blue-400 text-sm font-semibold mb-1">Demo Credentials:</p>
+              <p className="text-blue-400 text-sm font-semibold mb-1">Demo Credentials (Remove when API ready):</p>
               <p className="text-gray-300 text-xs">Player: player@test.com / password</p>
-              <p className="text-gray-300 text-xs">Admin: admin@test.com / password</p>
+              <p className="text-gray-300 text-xs">Admin: adminmaster@battleburn.com / BurnFF@2025!</p>
             </div>
           </div>
           
