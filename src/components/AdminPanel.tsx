@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Save, X, Users, Trophy, Calendar, Coins, Settings, Shield, Clock, MapPin, Award, Trash2, Eye, EyeOff, Instagram, Youtube, Twitter, Facebook, Globe, Link, CheckCircle, XCircle, AlertTriangle, DollarSign, CreditCard, FileImage } from 'lucide-react';
+import { Plus, Edit, Save, X, Users, Trophy, Calendar, Coins, Settings, Shield, Clock, MapPin, Award, Trash2, Eye, EyeOff, Instagram, Youtube, Twitter, Facebook, Globe, Link, CheckCircle, XCircle, AlertTriangle, DollarSign, CreditCard, FileImage, ZoomIn, Download } from 'lucide-react';
 import { Tournament, Player, PaymentRequest } from '../types';
 
 interface AdminPanelProps {
@@ -37,6 +37,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [editingTournament, setEditingTournament] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Tournament>>({});
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
   const [socialBanner, setSocialBanner] = useState<SocialMediaBanner>({
     instagram: '',
     youtube: '',
@@ -142,6 +143,69 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     if (confirm('Are you sure you want to reject this payment?')) {
       onRejectPayment(requestId, reason || undefined);
     }
+  };
+
+  // Generate a mock screenshot URL for demo purposes
+  const generateMockScreenshot = (requestId: string) => {
+    // In a real app, this would be the actual uploaded screenshot URL
+    // For demo, we'll create a placeholder image with payment details
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 600;
+    const ctx = canvas.getContext('2d');
+    
+    if (ctx) {
+      // Background
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(0, 0, 400, 600);
+      
+      // Header
+      ctx.fillStyle = '#f97316';
+      ctx.fillRect(0, 0, 400, 80);
+      
+      // JazzCash logo area
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('JazzCash', 200, 50);
+      
+      // Payment details
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '16px Arial';
+      ctx.textAlign = 'left';
+      
+      const request = paymentRequests.find(r => r.id === requestId);
+      if (request) {
+        ctx.fillText('Payment Confirmation', 20, 120);
+        ctx.fillText(`Amount: Rs. ${request.amount}`, 20, 160);
+        ctx.fillText('To: 03092198628', 20, 180);
+        ctx.fillText(`From: ${request.userEmail}`, 20, 200);
+        ctx.fillText('Status: Successful', 20, 220);
+        ctx.fillText(`Date: ${new Date(request.submittedAt).toLocaleDateString()}`, 20, 240);
+        ctx.fillText(`Time: ${new Date(request.submittedAt).toLocaleTimeString()}`, 20, 260);
+        ctx.fillText('Transaction ID: JC' + requestId.slice(-8).toUpperCase(), 20, 280);
+      }
+      
+      // Success indicator
+      ctx.fillStyle = '#10b981';
+      ctx.fillRect(20, 320, 360, 60);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 18px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('✓ PAYMENT SUCCESSFUL', 200, 355);
+      
+      // Footer
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '12px Arial';
+      ctx.fillText('This is a demo screenshot for testing purposes', 200, 550);
+    }
+    
+    return canvas.toDataURL('image/png');
+  };
+
+  const handleViewScreenshot = (requestId: string) => {
+    const screenshotUrl = generateMockScreenshot(requestId);
+    setSelectedScreenshot(screenshotUrl);
   };
 
   const getStatusColor = (status: Tournament['status']) => {
@@ -263,6 +327,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       <div className="flex items-center gap-2">
                         <FileImage className="w-4 h-4 text-blue-400" />
                         <span className="text-white text-sm">{request.screenshotName}</span>
+                        <button
+                          onClick={() => handleViewScreenshot(request.id)}
+                          className="ml-2 p-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded transition-colors"
+                          title="View Screenshot"
+                        >
+                          <ZoomIn className="w-3 h-3" />
+                        </button>
                       </div>
                       <p className="text-gray-500 text-xs">{(request.screenshotSize / 1024).toFixed(1)} KB</p>
                     </div>
@@ -274,6 +345,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
                   <div className="flex gap-3">
                     <button
+                      onClick={() => handleViewScreenshot(request.id)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all flex items-center gap-2"
+                    >
+                      <Eye className="w-4 h-4" />
+                      View Screenshot
+                    </button>
+                    <button
                       onClick={() => handleApprovePayment(request.id)}
                       className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2"
                     >
@@ -282,10 +360,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     </button>
                     <button
                       onClick={() => handleRejectPayment(request.id)}
-                      className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2"
+                      className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-all flex items-center gap-2"
                     >
                       <XCircle className="w-4 h-4" />
-                      Reject Payment
+                      Reject
                     </button>
                   </div>
                 </div>
@@ -320,13 +398,22 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           <p className="text-gray-400 text-sm">{request.amount} PKR</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className={`px-2 py-1 rounded text-xs font-semibold ${getPaymentStatusColor(request.status)}`}>
-                          {request.status.toUpperCase()}
-                        </span>
-                        <p className="text-gray-400 text-xs mt-1">
-                          {request.processedAt ? new Date(request.processedAt).toLocaleDateString() : ''}
-                        </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleViewScreenshot(request.id)}
+                          className="p-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded transition-colors"
+                          title="View Screenshot"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <div className="text-right">
+                          <span className={`px-2 py-1 rounded text-xs font-semibold ${getPaymentStatusColor(request.status)}`}>
+                            {request.status.toUpperCase()}
+                          </span>
+                          <p className="text-gray-400 text-xs mt-1">
+                            {request.processedAt ? new Date(request.processedAt).toLocaleDateString() : ''}
+                          </p>
+                        </div>
                       </div>
                     </div>
                     {request.rejectionReason && (
@@ -930,6 +1017,55 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 <Save className="w-5 h-5" />
                 Save Banner Settings
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Screenshot Modal */}
+      {selectedScreenshot && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-2xl border border-orange-500/30 max-w-2xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-gray-700">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <FileImage className="text-blue-400" />
+                Payment Screenshot
+              </h2>
+              <button
+                onClick={() => setSelectedScreenshot(null)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="bg-gray-800/50 rounded-lg p-4 mb-4">
+                <img
+                  src={selectedScreenshot}
+                  alt="Payment Screenshot"
+                  className="w-full max-h-96 object-contain rounded-lg"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = selectedScreenshot;
+                    link.download = 'payment-screenshot.png';
+                    link.click();
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Download
+                </button>
+                <button
+                  onClick={() => setSelectedScreenshot(null)}
+                  className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-all"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
