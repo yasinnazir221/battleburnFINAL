@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Upload, Camera, CheckCircle, Loader, Copy, CreditCard, Smartphone, Zap, AlertTriangle } from 'lucide-react';
+import { X, Upload, Camera, CheckCircle, Loader, Copy, CreditCard, Smartphone, Zap, AlertTriangle, Shield } from 'lucide-react';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -42,7 +42,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
       // Simulate processing delay
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // Submit payment for admin verification (no auto tokens)
+      // Submit payment for admin verification (NO AUTO TOKENS)
       onPaymentSubmit(amount, screenshot);
       setStep('success');
       
@@ -50,7 +50,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
       setTimeout(() => {
         onClose();
         resetModal();
-      }, 4000);
+      }, 5000);
     } catch (error) {
       console.error('Payment submission error:', error);
       setLoading(false);
@@ -108,7 +108,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                   <li>Send money to our JazzCash number</li>
                   <li>Take a screenshot of the payment confirmation</li>
                   <li>Upload the screenshot here</li>
-                  <li>Admin will verify and credit tokens manually</li>
+                  <li>Wait for admin verification (manual process)</li>
                 </ol>
               </div>
 
@@ -142,11 +142,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
 
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                  <span className="text-yellow-400 font-semibold text-sm">Manual Verification</span>
+                  <Shield className="w-4 h-4 text-yellow-400" />
+                  <span className="text-yellow-400 font-semibold text-sm">Manual Verification Required</span>
                 </div>
                 <p className="text-gray-400 text-xs">
-                  Your payment will be reviewed by admin and tokens will be credited manually after verification
+                  ⚠️ NO AUTOMATIC TOKENS: Your payment will be manually reviewed by admin and tokens will be credited only after verification
                 </p>
               </div>
 
@@ -167,7 +167,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                   <Upload className="w-8 h-8 text-blue-400" />
                 </div>
                 <h3 className="text-lg font-bold text-white mb-2">Upload Payment Screenshot</h3>
-                <p className="text-gray-400 text-sm">Amount: {amount} PKR → {amount} Tokens</p>
+                <p className="text-gray-400 text-sm">Amount: {amount} PKR → {amount} Tokens (Pending Verification)</p>
               </div>
 
               <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center">
@@ -205,6 +205,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                 </label>
               </div>
 
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-red-400" />
+                  <span className="text-red-400 font-semibold text-sm">Important Notice</span>
+                </div>
+                <p className="text-gray-400 text-xs">
+                  NO tokens will be added automatically. Admin must manually verify your payment and approve the request before tokens are credited to your account.
+                </p>
+              </div>
+
               <div className="flex gap-3">
                 <button
                   onClick={() => setStep('instructions')}
@@ -229,8 +239,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                 <Loader className="w-8 h-8 text-purple-400 animate-spin" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white mb-2">Submitting Payment</h3>
-                <p className="text-gray-400 text-sm mb-4">Sending your payment details to admin for verification...</p>
+                <h3 className="text-lg font-bold text-white mb-2">Submitting Payment Request</h3>
+                <p className="text-gray-400 text-sm mb-4">Sending your payment details to admin for manual verification...</p>
                 <div className="space-y-2 text-left max-w-xs mx-auto">
                   <div className="flex items-center gap-2 text-sm">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -238,7 +248,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                    <span className="text-gray-300">Submitting details...</span>
+                    <span className="text-gray-300">Creating payment request...</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
@@ -255,16 +265,22 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                 <CheckCircle className="w-8 h-8 text-green-400" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white mb-2">Payment Submitted!</h3>
+                <h3 className="text-lg font-bold text-white mb-2">Payment Request Submitted!</h3>
                 <p className="text-gray-400 text-sm mb-4">
-                  Your payment has been submitted for admin verification
+                  Your payment request has been submitted for admin verification
                 </p>
                 <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
                   <p className="text-blue-400 font-semibold">
-                    {amount} PKR → {amount} Tokens (Pending Verification)
+                    {amount} PKR → {amount} Tokens
                   </p>
+                  <p className="text-yellow-400 text-sm mt-1">⏳ Pending Admin Verification</p>
                   <p className="text-gray-400 text-xs mt-2">
-                    Admin will verify and credit tokens manually
+                    Admin will manually review and credit tokens after verification
+                  </p>
+                </div>
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mt-4">
+                  <p className="text-yellow-400 text-xs font-semibold">
+                    🔒 NO AUTOMATIC TOKENS - Manual verification required
                   </p>
                 </div>
               </div>

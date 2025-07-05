@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Save, X, Users, Trophy, Calendar, Coins, Settings, Shield, Clock, MapPin, Award, Trash2, Eye, EyeOff, Instagram, Youtube, Twitter, Facebook, Globe, Link } from 'lucide-react';
-import { Tournament, Player } from '../types';
+import { Plus, Edit, Save, X, Users, Trophy, Calendar, Coins, Settings, Shield, Clock, MapPin, Award, Trash2, Eye, EyeOff, Instagram, Youtube, Twitter, Facebook, Globe, Link, CheckCircle, XCircle, AlertTriangle, DollarSign, CreditCard, FileImage } from 'lucide-react';
+import { Tournament, Player, PaymentRequest } from '../types';
 
 interface AdminPanelProps {
   tournaments: Tournament[];
   players: Player[];
+  paymentRequests: PaymentRequest[];
   onCreateTournament: (tournament: Omit<Tournament, 'id'>) => void;
   onUpdateTournament: (id: string, updates: Partial<Tournament>) => void;
   onAddTokens: (playerId: string, amount: number, reason: string) => void;
+  onApprovePayment: (requestId: string) => void;
+  onRejectPayment: (requestId: string, reason?: string) => void;
 }
 
 interface SocialMediaBanner {
@@ -23,11 +26,14 @@ interface SocialMediaBanner {
 const AdminPanel: React.FC<AdminPanelProps> = ({ 
   tournaments, 
   players, 
+  paymentRequests,
   onCreateTournament, 
   onUpdateTournament,
-  onAddTokens 
+  onAddTokens,
+  onApprovePayment,
+  onRejectPayment
 }) => {
-  const [activeTab, setActiveTab] = useState<'tournaments' | 'players' | 'create' | 'banner'>('tournaments');
+  const [activeTab, setActiveTab] = useState<'tournaments' | 'players' | 'create' | 'banner' | 'payments'>('payments');
   const [editingTournament, setEditingTournament] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Tournament>>({});
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -61,6 +67,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setSocialBanner(JSON.parse(savedBanner));
     }
   }, []);
+
+  const pendingPayments = paymentRequests.filter(r => r.status === 'pending');
+  const processedPayments = paymentRequests.filter(r => r.status !== 'pending');
 
   const handleCreateTournament = () => {
     if (!newTournament.title || !newTournament.description || !newTournament.dateTime) {
@@ -122,6 +131,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     alert('Social media banner settings saved!');
   };
 
+  const handleApprovePayment = (requestId: string) => {
+    if (confirm('Are you sure you want to approve this payment? Tokens will be added to the player\'s account.')) {
+      onApprovePayment(requestId);
+    }
+  };
+
+  const handleRejectPayment = (requestId: string) => {
+    const reason = prompt('Enter rejection reason (optional):');
+    if (confirm('Are you sure you want to reject this payment?')) {
+      onRejectPayment(requestId, reason || undefined);
+    }
+  };
+
   const getStatusColor = (status: Tournament['status']) => {
     switch (status) {
       case 'waiting': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
@@ -132,10 +154,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
-  const TabButton = ({ id, icon: Icon, label }: { id: string; icon: any; label: string }) => (
+  const getPaymentStatusColor = (status: PaymentRequest['status']) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      case 'approved': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'rejected': return 'bg-red-500/20 text-red-400 border-red-500/30';
+      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    }
+  };
+
+  const TabButton = ({ id, icon: Icon, label, badge }: { id: string; icon: any; label: string; badge?: number }) => (
     <button
       onClick={() => setActiveTab(id as any)}
-      className={`flex items-center space-x-2 px-4 py-3 rounded-lg transition-all ${
+      className={`flex items-center space-x-2 px-4 py-3 rounded-lg transition-all relative ${
         activeTab === id
           ? 'bg-orange-500 text-black font-semibold'
           : 'text-gray-400 hover:text-orange-400 hover:bg-gray-800/50'
@@ -143,6 +174,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     >
       <Icon className="w-5 h-5" />
       <span>{label}</span>
+      {badge && badge > 0 && (
+        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] h-5 flex items-center justify-center">
+          {badge}
+        </span>
+      )}
     </button>
   );
 
@@ -156,13 +192,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
           <div>
             <h2 className="text-3xl font-bold text-white mb-2">Admin Control Panel</h2>
-            <p className="text-gray-300">Manage tournaments, players, and platform settings</p>
+            <p className="text-gray-300">Manage tournaments, players, payments, and platform settings</p>
           </div>
         </div>
       </div>
 
       {/* Navigation Tabs */}
       <div className="flex space-x-2 overflow-x-auto pb-2">
+        <TabButton id="payments" icon={CreditCard} label="Payment Requests" badge={pendingPayments.length} />
         <TabButton id="tournaments" icon={Trophy} label="Tournaments" />
         <TabButton id="players" icon={Users} label="Players" />
         <TabButton id="create" icon={Plus} label="Create Tournament" />
@@ -170,6 +207,148 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       </div>
 
       {/* Content Sections */}
+      {activeTab === 'payments' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-2xl font-bold text-white">Payment Management</h3>
+            <div className="flex items-center gap-4">
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-4 py-2">
+                <span className="text-yellow-400 font-bold">{pendingPayments.length}</span>
+                <span className="text-gray-400 text-sm ml-2">Pending</span>
+              </div>
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-2">
+                <span className="text-green-400 font-bold">{paymentRequests.filter(r => r.status === 'approved').length}</span>
+                <span className="text-gray-400 text-sm ml-2">Approved</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Pending Payments */}
+          {pendingPayments.length > 0 && (
+            <div className="space-y-4">
+              <h4 className="text-xl font-bold text-yellow-400 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" />
+                Pending Payment Requests ({pendingPayments.length})
+              </h4>
+              
+              {pendingPayments.map(request => (
+                <div key={request.id} className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
+                        <DollarSign className="w-6 h-6 text-yellow-400" />
+                      </div>
+                      <div>
+                        <h5 className="text-white font-bold">{request.username}</h5>
+                        <p className="text-gray-400 text-sm">{request.userEmail}</p>
+                        <p className="text-yellow-400 font-semibold">{request.amount} PKR → {request.amount} Tokens</p>
+                      </div>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full border text-xs font-semibold ${getPaymentStatusColor(request.status)}`}>
+                      {request.status.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4 mb-4">
+                    <div className="bg-gray-800/50 rounded-lg p-3">
+                      <p className="text-gray-400 text-sm">Payment Method</p>
+                      <p className="text-white font-semibold capitalize">{request.method}</p>
+                    </div>
+                    <div className="bg-gray-800/50 rounded-lg p-3">
+                      <p className="text-gray-400 text-sm">Submitted</p>
+                      <p className="text-white font-semibold">{new Date(request.submittedAt).toLocaleString()}</p>
+                    </div>
+                    <div className="bg-gray-800/50 rounded-lg p-3">
+                      <p className="text-gray-400 text-sm">Screenshot</p>
+                      <div className="flex items-center gap-2">
+                        <FileImage className="w-4 h-4 text-blue-400" />
+                        <span className="text-white text-sm">{request.screenshotName}</span>
+                      </div>
+                      <p className="text-gray-500 text-xs">{(request.screenshotSize / 1024).toFixed(1)} KB</p>
+                    </div>
+                    <div className="bg-gray-800/50 rounded-lg p-3">
+                      <p className="text-gray-400 text-sm">User ID</p>
+                      <p className="text-white font-mono text-sm">{request.userId}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => handleApprovePayment(request.id)}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Approve & Add {request.amount} Tokens
+                    </button>
+                    <button
+                      onClick={() => handleRejectPayment(request.id)}
+                      className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Reject Payment
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Processed Payments */}
+          {processedPayments.length > 0 && (
+            <div className="space-y-4">
+              <h4 className="text-xl font-bold text-gray-300">Payment History ({processedPayments.length})</h4>
+              
+              <div className="grid gap-4">
+                {processedPayments.slice(0, 10).map(request => (
+                  <div key={request.id} className={`rounded-xl p-4 border ${
+                    request.status === 'approved' 
+                      ? 'bg-green-500/10 border-green-500/30' 
+                      : 'bg-red-500/10 border-red-500/30'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          request.status === 'approved' ? 'bg-green-500/20' : 'bg-red-500/20'
+                        }`}>
+                          {request.status === 'approved' ? 
+                            <CheckCircle className="w-4 h-4 text-green-400" /> : 
+                            <XCircle className="w-4 h-4 text-red-400" />
+                          }
+                        </div>
+                        <div>
+                          <p className="text-white font-semibold">{request.username}</p>
+                          <p className="text-gray-400 text-sm">{request.amount} PKR</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`px-2 py-1 rounded text-xs font-semibold ${getPaymentStatusColor(request.status)}`}>
+                          {request.status.toUpperCase()}
+                        </span>
+                        <p className="text-gray-400 text-xs mt-1">
+                          {request.processedAt ? new Date(request.processedAt).toLocaleDateString() : ''}
+                        </p>
+                      </div>
+                    </div>
+                    {request.rejectionReason && (
+                      <div className="mt-2 p-2 bg-red-500/10 rounded border border-red-500/30">
+                        <p className="text-red-400 text-sm">Reason: {request.rejectionReason}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {paymentRequests.length === 0 && (
+            <div className="text-center py-12">
+              <CreditCard className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400">No payment requests yet.</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {activeTab === 'tournaments' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">

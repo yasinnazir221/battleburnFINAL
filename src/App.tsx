@@ -4,7 +4,7 @@ import SplashScreen from './components/SplashScreen';
 import AuthForm from './components/AuthForm';
 import Dashboard from './components/Dashboard';
 import AdminPanel from './components/AdminPanel';
-import { User, Tournament, Player } from './types';
+import { User, Tournament, Player, PaymentRequest } from './types';
 
 // Mock data for testing
 const mockTournaments: Tournament[] = [
@@ -54,7 +54,7 @@ const mockPlayers: Player[] = [
     email: 'player@test.com',
     username: 'TestPlayer',
     displayName: 'Test Player',
-    tokens: 0, // Changed to 0
+    tokens: 0, // Start with 0 tokens
     playerId: 'TEST123',
     gameUid: '123456789',
     uid: '123456789',
@@ -70,6 +70,7 @@ function App() {
   const [currentView, setCurrentView] = useState<'dashboard' | 'admin'>('dashboard');
   const [tournaments, setTournaments] = useState<Tournament[]>(mockTournaments);
   const [players, setPlayers] = useState<Player[]>(mockPlayers);
+  const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -77,6 +78,12 @@ function App() {
       setShowSplash(false);
       setLoading(false);
     }, 3000);
+
+    // Load payment requests from localStorage
+    const savedRequests = localStorage.getItem('paymentRequests');
+    if (savedRequests) {
+      setPaymentRequests(JSON.parse(savedRequests));
+    }
 
     return () => {
       clearTimeout(timer);
@@ -93,7 +100,7 @@ function App() {
         email: user.email,
         username: user.username,
         displayName: user.username,
-        tokens: 0, // Changed to 0 starting tokens
+        tokens: 0, // Start with 0 tokens - must purchase to get tokens
         playerId: `PID${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
         gameUid: `${Math.floor(Math.random() * 1000000000)}`,
         uid: `${Math.floor(Math.random() * 1000000000)}`,
@@ -113,7 +120,7 @@ function App() {
   const addTokensToPlayer = async (playerId: string, amount: number, reason: string) => {
     setPlayers(prev => prev.map(player => 
       player.id === playerId 
-        ? { ...player, tokens: player.tokens + amount }
+        ? { ...player, tokens: Math.max(0, player.tokens + amount) }
         : player
     ));
   };
@@ -177,35 +184,74 @@ function App() {
     alert('Successfully joined the tournament!');
   };
 
-  // Handle payment submission (NO AUTO TOKENS - Admin verification required)
+  // Handle payment submission - NO AUTO TOKENS, only admin verification
   const handlePaymentSubmit = async (amount: number, screenshot: File) => {
-    // In a real app, you would upload the screenshot to your backend
-    // and notify admin for manual verification
-    console.log('Payment submitted for admin verification:', { 
-      amount, 
-      screenshot: screenshot.name,
-      user: currentUser?.email,
-      timestamp: new Date().toISOString()
-    });
-    
-    // Store payment request for admin review (in real app, this would go to database)
-    const paymentRequest = {
+    if (!currentUser) return;
+
+    // Create payment request for admin verification
+    const paymentRequest: PaymentRequest = {
       id: `payment_${Date.now()}`,
-      userId: currentUser?.id,
-      userEmail: currentUser?.email,
+      userId: currentUser.id,
+      userEmail: currentUser.email,
+      username: currentUser.username,
       amount,
       screenshotName: screenshot.name,
+      screenshotSize: screenshot.size,
       status: 'pending',
-      submittedAt: new Date().toISOString()
+      submittedAt: new Date().toISOString(),
+      method: 'jazzcash'
     };
     
-    // Save to localStorage for demo (in real app, save to database)
-    const existingRequests = JSON.parse(localStorage.getItem('paymentRequests') || '[]');
-    existingRequests.push(paymentRequest);
-    localStorage.setItem('paymentRequests', JSON.stringify(existingRequests));
+    // Save to state and localStorage
+    const updatedRequests = [...paymentRequests, paymentRequest];
+    setPaymentRequests(updatedRequests);
+    localStorage.setItem('paymentRequests', JSON.stringify(updatedRequests));
     
-    // NO AUTO TOKEN ADDITION - Admin must manually verify and add tokens
-    console.log('Payment request saved for admin review. NO tokens added automatically.');
+    console.log('Payment request submitted for admin verification:', paymentRequest);
+    
+    // NO AUTOMATIC TOKEN ADDITION - Admin must manually verify and approve
+  };
+
+  // Admin function to approve payment request
+  const approvePaymentRequest = async (requestId: string) => {
+    const request = paymentRequests.find(r => r.id === requestId);
+    if (!request) return;
+
+    // Find the player
+    const player = players.find(p => p.email === request.userEmail);
+    if (!player) return;
+
+    // Add tokens to player
+    await addTokensToPlayer(player.id, request.amount, `Payment Approved: ${request.amount} PKR via ${request.method}`);
+
+    // Update request status
+    const updatedRequests = paymentRequests.map(r => 
+      r.id === requestId 
+        ? { ...r, status: 'approved' as const, processedAt: new Date().toISOString() }
+        : r
+    );
+    setPaymentRequests(updatedRequests);
+    localStorage.setItem('paymentRequests', JSON.stringify(updatedRequests));
+
+    alert(`Payment approved! ${request.amount} tokens added to ${request.username}'s account.`);
+  };
+
+  // Admin function to reject payment request
+  const rejectPaymentRequest = async (requestId: string, reason?: string) => {
+    const updatedRequests = paymentRequests.map(r => 
+      r.id === requestId 
+        ? { 
+            ...r, 
+            status: 'rejected' as const, 
+            processedAt: new Date().toISOString(),
+            rejectionReason: reason 
+          }
+        : r
+    );
+    setPaymentRequests(updatedRequests);
+    localStorage.setItem('paymentRequests', JSON.stringify(updatedRequests));
+
+    alert('Payment request rejected.');
   };
 
   if (showSplash) {
@@ -276,6 +322,11 @@ function App() {
                   >
                     <Shield className="w-4 h-4" />
                     <span className="font-semibold">Admin</span>
+                    {paymentRequests.filter(r => r.status === 'pending').length > 0 && (
+                      <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 ml-1">
+                        {paymentRequests.filter(r => r.status === 'pending').length}
+                      </span>
+                    )}
                   </button>
                 )}
               </div>
@@ -319,9 +370,12 @@ function App() {
           <AdminPanel
             tournaments={tournaments}
             players={players}
+            paymentRequests={paymentRequests}
             onCreateTournament={createTournament}
             onUpdateTournament={updateTournament}
             onAddTokens={addTokensToPlayer}
+            onApprovePayment={approvePaymentRequest}
+            onRejectPayment={rejectPaymentRequest}
           />
         )}
       </main>

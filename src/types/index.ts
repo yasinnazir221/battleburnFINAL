@@ -58,3 +58,34 @@ export interface TokenTransaction {
   date: string;
   adminId?: string;
 }
+
+export interface PaymentRequest {
+  id: string;
+  userId: string;
+  userEmail: string;
+  username: string;
+  amount: number;
+  screenshotName: string;
+  screenshotSize: number;
+  status: 'pending' | 'approved' | 'rejected';
+  submittedAt: string;
+  processedAt?: string;
+  method: 'jazzcash' | 'easypaisa';
+  rejectionReason?: string;
+}
+
+export interface WithdrawalRequest {
+  id: string;
+  userId: string;
+  userEmail: string;
+  username: string;
+  amount: number;
+  netAmount: number;
+  serviceFee: number;
+  accountNumber: string;
+  method: 'jazzcash' | 'easypaisa';
+  status: 'pending' | 'approved' | 'rejected';
+  submittedAt: string;
+  processedAt?: string;
+  rejectionReason?: string;
+}
