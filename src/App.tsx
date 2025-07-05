@@ -254,6 +254,15 @@ function App() {
     alert('Payment request rejected.');
   };
 
+  // Get current player's tokens (infinite for admin)
+  const getCurrentPlayerTokens = () => {
+    if (currentUser?.role === 'admin') {
+      return Infinity; // Admin has infinite tokens
+    }
+    const player = players.find(p => p.email === currentUser?.email);
+    return player?.tokens || 0;
+  };
+
   if (showSplash) {
     return <SplashScreen />;
   }
@@ -314,7 +323,7 @@ function App() {
                 {currentUser.role === 'admin' && (
                   <button
                     onClick={() => setCurrentView('admin')}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all relative ${
                       currentView === 'admin' 
                         ? 'bg-orange-500 text-black' 
                         : 'text-gray-300 hover:text-orange-400'
@@ -334,9 +343,14 @@ function App() {
               <div className="flex items-center space-x-3 bg-gray-800/50 rounded-lg px-4 py-2">
                 <Coins className="w-5 h-5 text-yellow-400" />
                 <span className="text-yellow-400 font-bold">
-                  {currentUser.role === 'admin' ? '∞' : players.find(p => p.email === currentUser.email)?.tokens || 0}
+                  {currentUser.role === 'admin' ? '∞' : getCurrentPlayerTokens()}
                 </span>
                 <span className="text-gray-400 text-sm">tokens</span>
+                {currentUser.role === 'admin' && (
+                  <span className="text-xs text-purple-400 bg-purple-500/20 px-2 py-1 rounded">
+                    ADMIN
+                  </span>
+                )}
               </div>
               
               <div className="flex items-center space-x-2 text-gray-300">
