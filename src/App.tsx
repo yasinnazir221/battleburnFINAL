@@ -5,6 +5,7 @@ import AuthForm from './components/AuthForm';
 import Dashboard from './components/Dashboard';
 import AdminPanel from './components/AdminPanel';
 import { User, Tournament, Player, PaymentRequest } from './types';
+import { uploadPaymentScreenshot } from './utils/imageStorage';
 
 // Mock data for testing
 const mockTournaments: Tournament[] = [
@@ -188,33 +189,46 @@ function App() {
   const handlePaymentSubmit = async (amount: number, screenshot: File) => {
     if (!currentUser) return;
 
-    // In production, you would upload the image first
-    // const uploadResult = await uploadPaymentScreenshot(screenshot, currentUser.id, paymentId);
-    
-    // Create payment request for admin verification
-    const paymentRequest: PaymentRequest = {
-      id: `payment_${Date.now()}`,
-      userId: currentUser.id,
-      userEmail: currentUser.email,
-      username: currentUser.username,
-      amount,
-      screenshotName: screenshot.name,
-      screenshotSize: screenshot.size,
-      // screenshotURL: uploadResult.url, // In production
-      // screenshotPath: uploadResult.path, // In production
-      status: 'pending',
-      submittedAt: new Date().toISOString(),
-      method: 'jazzcash'
-    };
-    
-    // Save to state and localStorage
-    const updatedRequests = [...paymentRequests, paymentRequest];
-    setPaymentRequests(updatedRequests);
-    localStorage.setItem('paymentRequests', JSON.stringify(updatedRequests));
-    
-    console.log('Payment request submitted for admin verification:', paymentRequest);
-    
-    // NO AUTOMATIC TOKEN ADDITION - Admin must manually verify and approve
+    try {
+      // Generate unique payment ID
+      const paymentId = `payment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Upload screenshot to Firebase Storage
+      const uploadResult = await uploadPaymentScreenshot(screenshot, currentUser.id, paymentId);
+      
+      console.log('📸 Screenshot uploaded successfully:', uploadResult);
+      
+      // Create payment request for admin verification
+      const paymentRequest: PaymentRequest = {
+        id: paymentId,
+        userId: currentUser.id,
+        userEmail: currentUser.email,
+        username: currentUser.username,
+        amount,
+        screenshotName: screenshot.name,
+        screenshotSize: screenshot.size,
+        screenshotURL: uploadResult.url,
+        screenshotPath: uploadResult.path,
+        screenshotFileName: uploadResult.fileName,
+        status: 'pending',
+        submittedAt: new Date().toISOString(),
+        method: 'jazzcash'
+      };
+      
+      // Save to state and localStorage
+      const updatedRequests = [...paymentRequests, paymentRequest];
+      setPaymentRequests(updatedRequests);
+      localStorage.setItem('paymentRequests', JSON.stringify(updatedRequests));
+      
+      console.log('💰 Payment request created:', paymentRequest);
+      
+      alert('Payment screenshot uploaded successfully! Admin will review your request.');
+      
+    } catch (error) {
+      console.error('❌ Payment submission error:', error);
+      alert('Failed to upload screenshot. Please try again.');
+      throw error;
+    }
   };
 
   // Admin function to approve payment request

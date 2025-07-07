@@ -69,6 +69,7 @@ export interface PaymentRequest {
   screenshotSize?: number;
   screenshotURL?: string;
   screenshotPath?: string;
+  screenshotFileName?: string;
   status: 'pending' | 'approved' | 'rejected';
   submittedAt: string;
   processedAt?: string;

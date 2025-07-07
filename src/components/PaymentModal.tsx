@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Upload, Camera, CheckCircle, Loader, Copy, CreditCard, Smartphone, Zap, AlertTriangle, Shield } from 'lucide-react';
-import { uploadPaymentScreenshot, compressImage } from '../utils/imageStorage';
+import { uploadPaymentScreenshot, validateImageFile } from '../utils/imageStorage';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -15,6 +15,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [copiedJazzCash, setCopiedJazzCash] = useState(false);
+  const [uploadError, setUploadError] = useState<string>('');
 
   const jazzCashNumber = '03092198628';
 
@@ -27,6 +28,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Validate file
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        setUploadError(validation.error || 'Invalid file');
+        return;
+      }
+      
+      setUploadError('');
       setScreenshot(file);
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
@@ -40,17 +49,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
     setStep('processing');
     
     try {
-      // Compress image before upload
-      const compressedImage = await compressImage(screenshot, 0.8);
+      // Generate unique payment ID
+      const paymentId = `payment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      // In production, upload to Firebase Storage
-      // const uploadResult = await uploadPaymentScreenshot(compressedImage, userId, paymentId);
+      // Upload to Firebase Storage
+      const uploadResult = await uploadPaymentScreenshot(screenshot, 'demo_user', paymentId);
       
-      // For now, simulate upload delay
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      console.log('📸 Upload successful:', uploadResult);
       
-      // Submit payment for admin verification
-      onPaymentSubmit(amount, compressedImage);
+      // Submit payment with Firebase URL for admin verification
+      onPaymentSubmit(amount, screenshot);
       setStep('success');
       
       // Auto close after success
@@ -60,6 +68,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
       }, 5000);
     } catch (error) {
       console.error('Payment submission error:', error);
+      setUploadError(error instanceof Error ? error.message : 'Upload failed');
       setLoading(false);
       setStep('upload');
     }
@@ -199,7 +208,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                 
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
                   onChange={handleFileUpload}
                   className="hidden"
                   id="screenshot-upload"
@@ -210,6 +219,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                 >
                   {previewUrl ? 'Change Screenshot' : 'Choose File'}
                 </label>
+                
+                {uploadError && (
+                  <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                    <p className="text-red-400 text-sm">{uploadError}</p>
+                  </div>
+                )}
               </div>
 
               <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
@@ -251,14 +266,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                 <div className="space-y-2 text-left max-w-xs mx-auto">
                   <div className="flex items-center gap-2 text-sm">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-gray-300">Uploading screenshot...</span>
+                    <span className="text-gray-300">Compressing image...</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                    <span className="text-gray-300">Creating payment request...</span>
+                    <span className="text-gray-300">Uploading to secure storage...</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                    <span className="text-gray-300">Creating payment request...</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
                     <span className="text-gray-300">Notifying admin...</span>
                   </div>
                 </div>
