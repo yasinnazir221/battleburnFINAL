@@ -640,53 +640,88 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       </div>
                     </div>
 
-                    {/* Room Details */}
-                    <div className="mt-4 grid md:grid-cols-2 gap-4">
+                    {/* Room Details - Enhanced */}
+                    <div className="mt-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h5 className="text-white font-bold flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-green-400" />
+                          Room Configuration
+                        </h5>
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          tournament.roomId && tournament.roomPassword 
+                            ? 'bg-green-500/20 text-green-400' 
+                            : 'bg-yellow-500/20 text-yellow-400'
+                        }`}>
+                          {tournament.roomId && tournament.roomPassword ? 'Configured' : 'Pending Setup'}
+                        </span>
+                      </div>
+                      
+                      <div className="grid md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-gray-400 text-xs mb-1">Room ID</label>
+                        <label className="block text-gray-300 text-sm mb-2 font-semibold">Room ID</label>
                         <div className="flex items-center gap-2">
                           <input
                             type="text"
                             value={tournament.roomId}
                             onChange={(e) => handleUpdateTournament(tournament, { roomId: e.target.value })}
-                            className="flex-1 bg-gray-700/50 border border-gray-600 rounded px-3 py-1 text-white text-sm"
+                            className="flex-1 bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             placeholder="Enter room ID"
                           />
                           {tournament.roomId && (
                             <button
                               onClick={() => copyToClipboard(tournament.roomId)}
-                              className="p-1 text-gray-400 hover:text-white transition-colors"
+                              className="p-2 text-gray-400 hover:text-green-400 transition-colors bg-gray-700/50 rounded-lg"
                             >
-                              <Copy className="w-3 h-3" />
+                              <Copy className="w-4 h-4" />
                             </button>
                           )}
                         </div>
                       </div>
                       <div>
-                        <label className="block text-gray-400 text-xs mb-1">Room Password</label>
+                        <label className="block text-gray-300 text-sm mb-2 font-semibold">Room Password</label>
                         <div className="flex items-center gap-2">
                           <input
                             type="text"
                             value={tournament.roomPassword}
                             onChange={(e) => handleUpdateTournament(tournament, { roomPassword: e.target.value })}
-                            className="flex-1 bg-gray-700/50 border border-gray-600 rounded px-3 py-1 text-white text-sm"
+                            className="flex-1 bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             placeholder="Enter password"
                           />
                           {tournament.roomPassword && (
                             <button
                               onClick={() => copyToClipboard(tournament.roomPassword)}
-                              className="p-1 text-gray-400 hover:text-white transition-colors"
+                              className="p-2 text-gray-400 hover:text-green-400 transition-colors bg-gray-700/50 rounded-lg"
                             >
-                              <Copy className="w-3 h-3" />
+                              <Copy className="w-4 h-4" />
                             </button>
                           )}
                         </div>
+                      </div>
+                      </div>
+                      
+                      {/* Room Status Info */}
+                      <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Shield className="w-4 h-4 text-blue-400" />
+                          <span className="text-blue-400 font-semibold text-sm">Room Access</span>
+                        </div>
+                        <p className="text-gray-400 text-xs">
+                          {tournament.roomId && tournament.roomPassword ? (
+                            <>
+                              ✅ Room details are configured and will be automatically shown to {tournament.participants.length} registered players.
+                              {tournament.participants.length === 0 && " No players have joined yet."}
+                            </>
+                          ) : (
+                            "⚠️ Set room ID and password above. Only registered players who paid tokens will see these details."
+                          )}
+                        </p>
                       </div>
                     </div>
                   </div>
 
                   {/* Action Buttons */}
                   <div className="flex flex-col gap-2 ml-4">
+                    {/* Status Selector */}
                     <select
                       value={tournament.status}
                       onChange={(e) => handleUpdateTournament(tournament, { status: e.target.value as any })}
@@ -696,6 +731,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       <option value="live">Live</option>
                       <option value="completed">Completed</option>
                     </select>
+                    
+                    {/* Quick Actions */}
+                    {tournament.participants.length > 0 && (
+                      <div className="text-center mt-2">
+                        <p className="text-gray-400 text-xs mb-1">{tournament.participants.length} players joined</p>
+                        {tournament.roomId && tournament.roomPassword && (
+                          <span className="text-green-400 text-xs">✅ Room ready</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
