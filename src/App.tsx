@@ -188,6 +188,9 @@ function App() {
   const handlePaymentSubmit = async (amount: number, screenshot: File) => {
     if (!currentUser) return;
 
+    // In production, you would upload the image first
+    // const uploadResult = await uploadPaymentScreenshot(screenshot, currentUser.id, paymentId);
+    
     // Create payment request for admin verification
     const paymentRequest: PaymentRequest = {
       id: `payment_${Date.now()}`,
@@ -197,6 +200,8 @@ function App() {
       amount,
       screenshotName: screenshot.name,
       screenshotSize: screenshot.size,
+      // screenshotURL: uploadResult.url, // In production
+      // screenshotPath: uploadResult.path, // In production
       status: 'pending',
       submittedAt: new Date().toISOString(),
       method: 'jazzcash'

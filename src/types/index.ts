@@ -65,8 +65,10 @@ export interface PaymentRequest {
   userEmail: string;
   username: string;
   amount: number;
-  screenshotName: string;
-  screenshotSize: number;
+  screenshotName?: string;
+  screenshotSize?: number;
+  screenshotURL?: string;
+  screenshotPath?: string;
   status: 'pending' | 'approved' | 'rejected';
   submittedAt: string;
   processedAt?: string;

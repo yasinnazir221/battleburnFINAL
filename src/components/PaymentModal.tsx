@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Upload, Camera, CheckCircle, Loader, Copy, CreditCard, Smartphone, Zap, AlertTriangle, Shield } from 'lucide-react';
+import { uploadPaymentScreenshot, compressImage } from '../utils/imageStorage';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -39,11 +40,17 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
     setStep('processing');
     
     try {
-      // Simulate processing delay
+      // Compress image before upload
+      const compressedImage = await compressImage(screenshot, 0.8);
+      
+      // In production, upload to Firebase Storage
+      // const uploadResult = await uploadPaymentScreenshot(compressedImage, userId, paymentId);
+      
+      // For now, simulate upload delay
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // Submit payment for admin verification (NO AUTO TOKENS)
-      onPaymentSubmit(amount, screenshot);
+      // Submit payment for admin verification
+      onPaymentSubmit(amount, compressedImage);
       setStep('success');
       
       // Auto close after success
