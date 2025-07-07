@@ -306,7 +306,8 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
           )}
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {tournaments.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {tournaments.map(tournament => {
               const isJoined = tournament.participants.includes(currentPlayer?.id || '');
               const hasEnoughTokens = currentUser.role === 'admin' || getCurrentPlayerTokens() >= tournament.entryFee;
@@ -418,7 +419,16 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </div>
               );
             })}
-          </div>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Trophy className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400">No tournaments available yet.</p>
+              {currentUser.role === 'admin' && (
+                <p className="text-gray-500 text-sm mt-2">Create your first tournament in the admin panel.</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -481,12 +491,14 @@ const Dashboard: React.FC<DashboardProps> = ({
             <div className="text-center py-12">
               <Trophy className="w-16 h-16 text-gray-600 mx-auto mb-4" />
               <p className="text-gray-400">You haven't joined any tournaments yet.</p>
-              <button 
-                onClick={() => setActiveTab('tournaments')}
-                className="mt-4 text-orange-400 hover:text-orange-300 font-semibold"
-              >
-                Browse Tournaments
-              </button>
+              {tournaments.length > 0 && (
+                <button 
+                  onClick={() => setActiveTab('tournaments')}
+                  className="mt-4 text-orange-400 hover:text-orange-300 font-semibold"
+                >
+                  Browse Tournaments
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -1,12 +1,8 @@
 import React, { useState } from 'react';
 import { Mail, Lock, UserPlus, LogIn, Eye, EyeOff, Loader, User, Hash } from 'lucide-react';
-import { User as UserType } from '../types';
+import { signInUser, signUpUser } from '../firebase/auth';
 
-interface AuthFormProps {
-  onLogin: (user: UserType) => void;
-}
-
-const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
+const AuthForm: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -25,32 +21,15 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
     setError('');
     
     try {
-      // Simulate authentication delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       if (isLogin) {
-        // Mock login - check for admin with new credentials
-        const isAdmin = (formData.email.toLowerCase() === 'adminmaster@battleburn.com' && formData.password === 'BurnFF@2025!') ||
-                        formData.email.toLowerCase().includes('admin');
-        
-        onLogin({
-          id: `user_${Date.now()}`,
-          email: formData.email,
-          username: formData.email.split('@')[0],
-          role: isAdmin ? 'admin' : 'player'
-        });
+        await signInUser(formData.email, formData.password);
       } else {
-        // Mock signup
+        // Validate signup fields
         if (!formData.username || !formData.playerId || !formData.uid) {
           throw new Error('Username, Player ID, and Free Fire UID are required');
         }
         
-        onLogin({
-          id: `user_${Date.now()}`,
-          email: formData.email,
-          username: formData.username,
-          role: 'player'
-        });
+        await signUpUser(formData.email, formData.password, formData.username, formData.playerId, formData.uid);
       }
     } catch (error: any) {
       console.error('Authentication error:', error);
@@ -87,12 +66,6 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
             <p className="text-gray-400 mt-2">
               {isLogin ? 'Sign in to your tournament account' : 'Create your Free Fire tournament account'}
             </p>
-            {/* Demo credentials - REMOVE THIS WHEN IMPLEMENTING REAL API */}
-            <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-              <p className="text-blue-400 text-sm font-semibold mb-1">Demo Credentials (Remove when API ready):</p>
-              <p className="text-gray-300 text-xs">Player: player@test.com / password</p>
-              <p className="text-gray-300 text-xs">Admin: adminmaster@battleburn.com / BurnFF@2025!</p>
-            </div>
           </div>
           
           {error && (

@@ -162,7 +162,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                   <span className="text-yellow-400 font-semibold text-sm">Manual Verification Required</span>
                 </div>
                 <p className="text-gray-400 text-xs">
-                  ⚠️ NO AUTOMATIC TOKENS: Your payment will be manually reviewed by admin and tokens will be credited only after verification
+                  ⚠️ Manual Review: Your payment will be reviewed by admin and tokens will be credited after verification
                 </p>
               </div>
 
@@ -233,7 +233,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                   <span className="text-red-400 font-semibold text-sm">Important Notice</span>
                 </div>
                 <p className="text-gray-400 text-xs">
-                  NO tokens will be added automatically. Admin must manually verify your payment and approve the request before tokens are credited to your account.
+                  Admin must verify your payment and approve the request before tokens are credited to your account.
                 </p>
               </div>
 
@@ -306,7 +306,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onPaymentS
                 </div>
                 <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mt-4">
                   <p className="text-yellow-400 text-xs font-semibold">
-                    🔒 NO AUTOMATIC TOKENS - Manual verification required
+                    🔒 Manual verification required
                   </p>
                 </div>
               </div>
