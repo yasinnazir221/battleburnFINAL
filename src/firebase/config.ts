@@ -6,12 +6,12 @@ import { getStorage } from 'firebase/storage';
 // Firebase configuration
 // Replace with your actual Firebase config
 const firebaseConfig = {
-  apiKey: "AIzaSyBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-  authDomain: "battleburn-ff.firebaseapp.com",
-  projectId: "battleburn-ff",
-  storageBucket: "battleburn-ff.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abcdefghijklmnop"
+  apiKey: "AIzaSyDw3JkPokn-Vr87Z885CAKjvrmajfFNLts",
+  authDomain: "battleburn-a6fe0.firebaseapp.com",
+  projectId: "battleburn-a6fe0",
+  storageBucket: "battleburn-a6fe0.firebasestorage.app",
+  messagingSenderId: "647937146440",
+  appId: "1:647937146440:web:4c9ddfdf12d4eddedae27d"
 };
 
 // Initialize Firebase
