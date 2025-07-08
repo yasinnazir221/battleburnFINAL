@@ -26,10 +26,13 @@ import {
   Facebook,
   Globe,
   Link as LinkIcon,
-  Save
+  Save,
+  Bell,
+  AlertCircle,
+  MapPin
 } from 'lucide-react';
 import { Tournament, Player, PaymentRequest, User } from '../types';
-import { getScreenshotURL } from '../utils/imageStorage';
+import { getScreenshotURL } from '../services/storage';
 
 interface AdminPanelProps {
   tournaments: Tournament[];
@@ -77,12 +80,72 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     discord: '',
     enabled: false
   });
+  const [notifications, setNotifications] = useState<Array<{
+    id: string;
+    type: 'tournament_full' | 'room_needed';
+    tournamentId: string;
+    tournamentTitle: string;
+    message: string;
+    timestamp: string;
+    dismissed: boolean;
+  }>>([]);
 
   // Load social banner settings
   useEffect(() => {
     const savedBanner = localStorage.getItem('socialBanner');
     if (savedBanner) {
       setSocialBanner(JSON.parse(savedBanner));
+    }
+  }, []);
+
+  // Check for tournament notifications
+  useEffect(() => {
+    const checkTournamentNotifications = () => {
+      const newNotifications: typeof notifications = [];
+      
+      tournaments.forEach(tournament => {
+        const isFull = tournament.participants.length >= tournament.maxPlayers;
+        const needsRoomSetup = isFull && (!tournament.roomId || !tournament.roomPassword);
+        const existingNotification = notifications.find(n => 
+          n.tournamentId === tournament.id && !n.dismissed
+        );
+        
+        if (needsRoomSetup && !existingNotification) {
+          newNotifications.push({
+            id: `${tournament.id}_${Date.now()}`,
+            type: 'room_needed',
+            tournamentId: tournament.id,
+            tournamentTitle: tournament.title,
+            message: `Tournament "${tournament.title}" is FULL (${tournament.participants.length}/${tournament.maxPlayers} players)! Set room ID and password now.`,
+            timestamp: new Date().toISOString(),
+            dismissed: false
+          });
+        }
+      });
+      
+      if (newNotifications.length > 0) {
+        setNotifications(prev => [...prev.filter(n => !n.dismissed), ...newNotifications]);
+        
+        // Show browser notification if permission granted
+        if (Notification.permission === 'granted') {
+          newNotifications.forEach(notification => {
+            new Notification('🔥 Battle Burn FF - Tournament Full!', {
+              body: notification.message,
+              icon: '/logo.png.png',
+              tag: notification.id
+            });
+          });
+        }
+      }
+    };
+    
+    checkTournamentNotifications();
+  }, [tournaments, notifications]);
+
+  // Request notification permission on component mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
     }
   }, []);
 
@@ -179,6 +242,28 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     alert('Social media banner settings saved!');
   };
 
+  const dismissNotification = (notificationId: string) => {
+    setNotifications(prev => 
+      prev.map(n => n.id === notificationId ? { ...n, dismissed: true } : n)
+    );
+  };
+
+  const handleQuickRoomSetup = (tournamentId: string) => {
+    const tournament = tournaments.find(t => t.id === tournamentId);
+    if (!tournament) return;
+    
+    const roomId = prompt('Enter Room ID:', '');
+    const roomPassword = prompt('Enter Room Password:', '');
+    
+    if (roomId && roomPassword) {
+      handleUpdateTournament(tournament, { roomId, roomPassword });
+      // Dismiss related notifications
+      setNotifications(prev => 
+        prev.map(n => n.tournamentId === tournamentId ? { ...n, dismissed: true } : n)
+      );
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
   };
@@ -188,6 +273,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const totalRevenue = paymentRequests
     .filter(r => r.status === 'approved')
     .reduce((sum, r) => sum + r.amount, 0);
+  const activeNotifications = notifications.filter(n => !n.dismissed);
 
   const TabButton = ({ id, icon: Icon, label, badge }: { id: string; icon: any; label: string; badge?: number }) => (
     <button
@@ -210,6 +296,48 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   return (
     <div className="space-y-8">
+      {/* Notification Bar */}
+      {activeNotifications.length > 0 && (
+        <div className="space-y-3">
+          {activeNotifications.map(notification => (
+            <div key={notification.id} className="bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/50 rounded-xl p-4 animate-pulse">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-red-500/30 rounded-full flex items-center justify-center animate-bounce">
+                    <Bell className="w-6 h-6 text-red-400" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertCircle className="w-5 h-5 text-red-400" />
+                      <h4 className="text-red-400 font-bold">🚨 URGENT: Tournament Full!</h4>
+                    </div>
+                    <p className="text-white font-semibold mb-2">{notification.message}</p>
+                    <p className="text-gray-400 text-sm">
+                      Players are waiting for room details • {new Date(notification.timestamp).toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => handleQuickRoomSetup(notification.tournamentId)}
+                    className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 shadow-lg"
+                  >
+                    <MapPin className="w-4 h-4" />
+                    Set Room Now
+                  </button>
+                  <button
+                    onClick={() => dismissNotification(notification.id)}
+                    className="text-gray-400 hover:text-white transition-colors text-sm"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Admin Header */}
       <div className="bg-gradient-to-r from-purple-500/10 to-orange-500/10 rounded-2xl border border-purple-500/20 p-8">
         <div className="flex items-center justify-between">
@@ -607,6 +735,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               <div key={tournament.id} className="bg-gray-800/50 rounded-xl border border-gray-700 p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
+                    {/* Tournament Status Alert */}
+                    {tournament.participants.length >= tournament.maxPlayers && (!tournament.roomId || !tournament.roomPassword) && (
+                      <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4 animate-pulse">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="w-5 h-5 text-red-400" />
+                          <span className="text-red-400 font-bold">🚨 TOURNAMENT FULL - SET ROOM DETAILS NOW!</span>
+                        </div>
+                        <p className="text-gray-300 text-sm mt-1">
+                          {tournament.participants.length} players paid tokens and are waiting for room access
+                        </p>
+                      </div>
+                    )}
+                    
                     <div className="flex items-center space-x-3 mb-2">
                       <h4 className="text-white font-bold text-lg">{tournament.title}</h4>
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
@@ -631,55 +772,225 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         <p className="text-white font-semibold">{tournament.entryFee} tokens</p>
                       </div>
                       <div>
-                        <p className="text-gray-400">Players</p>
-                        <p className="text-white font-semibold">{tournament.participants.length}/{tournament.maxPlayers}</p>
+                        <p className="text-gray-400">Players (Paid Tokens)</p>
+                        <p className={`font-semibold ${
+                          tournament.participants.length >= tournament.maxPlayers 
+                            ? 'text-red-400 animate-pulse' 
+                            : 'text-white'
+                        }`}>
+                          {tournament.participants.length}/{tournament.maxPlayers}
+                          {tournament.participants.length >= tournament.maxPlayers && (
+                            <span className="text-red-400 ml-2">🔥 FULL!</span>
+                          )}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-gray-400">Date</p>
-                        <p className="text-white font-semibold">{new Date(tournament.dateTime).toLocaleDateString()}</p>
+                        <p className="text-gray-400">Prize Pool</p>
+                        <p className="text-yellow-400 font-semibold">
+                          {tournament.participants.length * tournament.entryFee} tokens
+                        </p>
                       </div>
                     </div>
 
-                    {/* Room Details */}
-                    <div className="mt-4 grid md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-gray-400 text-xs mb-1">Room ID</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={tournament.roomId}
-                            onChange={(e) => handleUpdateTournament(tournament, { roomId: e.target.value })}
-                            className="flex-1 bg-gray-700/50 border border-gray-600 rounded px-3 py-1 text-white text-sm"
-                            placeholder="Enter room ID"
-                          />
-                          {tournament.roomId && (
-                            <button
-                              onClick={() => copyToClipboard(tournament.roomId)}
-                              className="p-1 text-gray-400 hover:text-white transition-colors"
-                            >
-                              <Copy className="w-3 h-3" />
-                            </button>
-                          )}
+                    {/* Tournament Stats */}
+                    <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                      <div className="grid md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <p className="text-blue-400 font-semibold">Tokens Collected</p>
+                          <p className="text-white">{tournament.participants.length * tournament.entryFee} tokens</p>
+                        </div>
+                        <div>
+                          <p className="text-blue-400 font-semibold">Slots Remaining</p>
+                          <p className="text-white">{tournament.maxPlayers - tournament.participants.length} slots</p>
+                        </div>
+                        <div>
+                          <p className="text-blue-400 font-semibold">Room Status</p>
+                          <p className={tournament.roomId && tournament.roomPassword ? 'text-green-400' : 'text-red-400'}>
+                            {tournament.roomId && tournament.roomPassword ? '✅ Ready' : '❌ Not Set'}
+                          </p>
                         </div>
                       </div>
-                      <div>
-                        <label className="block text-gray-400 text-xs mb-1">Room Password</label>
+                    </div>
+
+                    {/* Player Registration Status */}
+                    <div className="mt-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h5 className="text-white font-bold flex items-center gap-2">
+                          <Users className="w-4 h-4 text-blue-400" />
+                          Registered Players ({tournament.participants.length})
+                        </h5>
                         <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={tournament.roomPassword}
-                            onChange={(e) => handleUpdateTournament(tournament, { roomPassword: e.target.value })}
-                            className="flex-1 bg-gray-700/50 border border-gray-600 rounded px-3 py-1 text-white text-sm"
-                            placeholder="Enter password"
-                          />
-                          {tournament.roomPassword && (
-                            <button
-                              onClick={() => copyToClipboard(tournament.roomPassword)}
-                              className="p-1 text-gray-400 hover:text-white transition-colors"
-                            >
-                              <Copy className="w-3 h-3" />
-                            </button>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            tournament.participants.length === 0 ? 'bg-gray-500/20 text-gray-400' :
+                            tournament.participants.length < tournament.maxPlayers ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-green-500/20 text-green-400'
+                          }`}>
+                            {tournament.participants.length === 0 ? 'No Players Yet' :
+                             tournament.participants.length < tournament.maxPlayers ? 'Accepting Players' :
+                             'Tournament Full'}
+                          </span>
+                          <span className="text-green-400 font-bold">
+                            {tournament.participants.length * tournament.entryFee} tokens collected
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {tournament.participants.length > 0 ? (
+                        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <h6 className="text-blue-400 font-semibold mb-2">Players Who Paid Tokens:</h6>
+                              <div className="space-y-1 max-h-32 overflow-y-auto">
+                                {tournament.participants.map((participantId, index) => {
+                                  const player = players.find(p => p.id === participantId);
+                                  return (
+                                    <div key={participantId} className="flex items-center justify-between bg-gray-800/50 rounded px-3 py-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-blue-400 font-bold text-sm">#{index + 1}</span>
+                                        <span className="text-white text-sm">{player?.username || 'Unknown Player'}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-green-400 text-xs">✓ Paid {tournament.entryFee} tokens</span>
+                                        <span className="text-gray-400 text-xs">UID: {player?.gameUid || 'N/A'}</span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            <div>
+                              <h6 className="text-blue-400 font-semibold mb-2">Tournament Stats:</h6>
+                              <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Total Entry Fees:</span>
+                                  <span className="text-green-400 font-bold">{tournament.participants.length * tournament.entryFee} tokens</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Slots Filled:</span>
+                                  <span className="text-white">{tournament.participants.length}/{tournament.maxPlayers}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Slots Remaining:</span>
+                                  <span className="text-yellow-400">{tournament.maxPlayers - tournament.participants.length}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Prize Pool:</span>
+                                  <span className="text-purple-400 font-bold">
+                                    {tournament.participants.length * tournament.entryFee} tokens
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-gray-500/10 border border-gray-500/30 rounded-lg p-6 text-center">
+                          <Users className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+                          <p className="text-gray-400">No players have joined this tournament yet</p>
+                          <p className="text-gray-500 text-sm mt-1">Players need to pay {tournament.entryFee} tokens to join</p>
+                        </div>
+                      )}
+                    </div>
+                    {/* Room Details - Enhanced */}
+                    <div className="mt-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h5 className="text-white font-bold flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-green-400" />
+                          Room Configuration 
+                          {tournament.participants.length >= tournament.maxPlayers && (
+                            <span className="text-red-400 text-sm animate-pulse">🚨 URGENT</span>
                           )}
+                        </h5>
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          tournament.roomId && tournament.roomPassword 
+                            ? 'bg-green-500/20 text-green-400' 
+                            : tournament.participants.length >= tournament.maxPlayers
+                            ? 'bg-red-500/20 text-red-400 animate-pulse'
+                            : 'bg-yellow-500/20 text-yellow-400'
+                        }`}>
+                          {tournament.roomId && tournament.roomPassword 
+                            ? 'Configured' 
+                            : tournament.participants.length >= tournament.maxPlayers
+                            ? 'URGENT - SET NOW!'
+                            : 'Pending Setup'
+                          }
+                        </span>
+                      </div>
+                      
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-6">
+                        <div className="grid md:grid-cols-2 gap-6">
+                          <div>
+                            <label className="block text-orange-400 text-sm mb-3 font-bold flex items-center gap-2">
+                              <MapPin className="w-4 h-4" />
+                              Free Fire Room ID
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={tournament.roomId}
+                                onChange={(e) => handleUpdateTournament(tournament, { roomId: e.target.value })}
+                                className="flex-1 bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent placeholder-gray-400"
+                                placeholder="Enter Free Fire room ID"
+                              />
+                              {tournament.roomId && (
+                                <button
+                                  onClick={() => copyToClipboard(tournament.roomId)}
+                                  className="p-3 text-gray-400 hover:text-orange-400 transition-colors bg-gray-700/50 rounded-lg"
+                                  title="Copy Room ID"
+                                >
+                                  <Copy className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-orange-400 text-sm mb-3 font-bold flex items-center gap-2">
+                              <Shield className="w-4 h-4" />
+                              Room Password
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={tournament.roomPassword}
+                                onChange={(e) => handleUpdateTournament(tournament, { roomPassword: e.target.value })}
+                                className="flex-1 bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent placeholder-gray-400"
+                                placeholder="Enter room password"
+                              />
+                              {tournament.roomPassword && (
+                                <button
+                                  onClick={() => copyToClipboard(tournament.roomPassword)}
+                                  className="p-3 text-gray-400 hover:text-orange-400 transition-colors bg-gray-700/50 rounded-lg"
+                                  title="Copy Password"
+                                >
+                                  <Copy className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Room Status Info */}
+                        <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Shield className="w-4 h-4 text-blue-400" />
+                            <span className="text-blue-400 font-semibold text-sm">Room Access</span>
+                          </div>
+                          <p className="text-gray-400 text-xs">
+                            {tournament.roomId && tournament.roomPassword ? (
+                              <>
+                                ✅ Room details are configured and will be automatically shown to {tournament.participants.length} registered players.
+                                {tournament.participants.length === 0 && " No players have joined yet."}
+                              </>
+                            ) : (
+                              tournament.participants.length >= tournament.maxPlayers ? (
+                                <>
+                                  🚨 <strong className="text-red-400">URGENT:</strong> {tournament.participants.length} players paid tokens and are waiting! Set room details immediately.
+                                </>
+                              ) : (
+                                "⚠️ Set room ID and password above. Only registered players who paid tokens will see these details."
+                              )
+                            )}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -687,15 +998,68 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
                   {/* Action Buttons */}
                   <div className="flex flex-col gap-2 ml-4">
+                    {/* Quick Room Setup for Full Tournaments */}
+                    {tournament.participants.length >= tournament.maxPlayers && (!tournament.roomId || !tournament.roomPassword) && (
+                      <button
+                        onClick={() => handleQuickRoomSetup(tournament.id)}
+                        className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold py-2 px-4 rounded-lg transition-all animate-pulse shadow-lg"
+                      >
+                        🚨 Set Room Now!
+                      </button>
+                    )}
+                    
+                    {/* Status Selector */}
                     <select
                       value={tournament.status}
                       onChange={(e) => handleUpdateTournament(tournament, { status: e.target.value as any })}
-                      className="bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white text-sm"
+                      className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm font-semibold"
                     >
                       <option value="waiting">Waiting</option>
                       <option value="live">Live</option>
                       <option value="completed">Completed</option>
                     </select>
+                    
+                    {/* Tournament Status Summary */}
+                    <div className="bg-gray-800/50 rounded-lg p-3 text-center">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-center gap-2">
+                          <Users className="w-4 h-4 text-blue-400" />
+                          <span className="text-white font-bold text-sm">{tournament.participants.length}</span>
+                        </div>
+                        <p className="text-gray-400 text-xs">Players Joined</p>
+                        
+                        {tournament.roomId && tournament.roomPassword ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <CheckCircle className="w-3 h-3 text-green-400" />
+                            <span className="text-green-400 text-xs font-semibold">Room Ready</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-1">
+                            <AlertTriangle className="w-3 h-3 text-red-400" />
+                            <span className="text-red-400 text-xs font-semibold">Set Room Details</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Quick Actions */}
+                    {tournament.participants.length > 0 && (
+                      <div className="text-center mt-2">
+                        <p className={`text-xs mb-1 ${
+                          tournament.participants.length >= tournament.maxPlayers 
+                            ? 'text-red-400 font-bold animate-pulse' 
+                            : 'text-gray-400'
+                        }`}>
+                          {tournament.participants.length} players paid tokens
+                          {tournament.participants.length >= tournament.maxPlayers && (
+                            <span className="block text-red-400">🔥 TOURNAMENT FULL!</span>
+                          )}
+                        </p>
+                        {tournament.roomId && tournament.roomPassword && (
+                          <span className="text-green-400 text-xs">✅ Room ready</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
