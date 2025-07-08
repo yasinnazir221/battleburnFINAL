@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Upload, Camera, CheckCircle, Loader, Copy, CreditCard, Smartphone, Zap, AlertTriangle, Shield } from 'lucide-react';
-import { uploadPaymentScreenshot, validateImageFile } from '../utils/imageStorage';
+import { uploadPaymentScreenshot, validateImageFile } from '../services/storage';
 
 interface PaymentModalProps {
   isOpen: boolean;

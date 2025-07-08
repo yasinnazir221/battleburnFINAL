@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, UserPlus, LogIn, Eye, EyeOff, Loader, User, Hash } from 'lucide-react';
-import { signInUser, signUpUser } from '../firebase/auth';
+import { signInUser, signUpUser } from '../services/auth';
 
 const AuthForm: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);

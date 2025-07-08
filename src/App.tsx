@@ -5,17 +5,21 @@ import AuthForm from './components/AuthForm';
 import Dashboard from './components/Dashboard';
 import AdminPanel from './components/AdminPanel';
 import { User, Tournament, Player, PaymentRequest } from './types';
-import { uploadPaymentScreenshot } from './utils/imageStorage';
-import { onAuthStateChange, signOutUser } from './firebase/auth';
+import { uploadPaymentScreenshot } from './services/storage';
+import { onAuthStateChange, signOutUser } from './services/auth';
 import { 
-  getAllPlayers, 
-  getAllTournaments, 
+  getAllPlayers,
+  getAllTournaments,
   createTournament as createTournamentDB,
   updateTournament as updateTournamentDB,
   updatePlayerTokens,
   listenToPlayers,
-  listenToTournaments
-} from './firebase/firestore';
+  listenToTournaments,
+  getPaymentRequests,
+  createPaymentRequest,
+  updatePaymentRequest,
+  listenToPaymentRequests
+} from './services/database';
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -39,15 +43,11 @@ function App() {
       setLoading(false);
     });
 
-    // Load payment requests from localStorage (temporary until backend)
-    const savedRequests = localStorage.getItem('paymentRequests');
-    if (savedRequests) {
-      setPaymentRequests(JSON.parse(savedRequests));
-    }
-
     return () => {
       clearTimeout(timer);
-      unsubscribeAuth();
+      if (unsubscribeAuth?.subscription) {
+        unsubscribeAuth.subscription.unsubscribe();
+      }
     };
   }, []);
 
@@ -55,12 +55,19 @@ function App() {
   useEffect(() => {
     if (currentUser) {
       // Set up real-time listeners for tournaments and players
-      const unsubscribeTournaments = listenToTournaments(setTournaments);
-      const unsubscribePlayers = listenToPlayers(setPlayers);
+      const tournamentsSubscription = listenToTournaments(setTournaments);
+      const playersSubscription = listenToPlayers(setPlayers);
+      const paymentsSubscription = listenToPaymentRequests(setPaymentRequests);
+      
+      // Load initial data
+      getAllTournaments().then(setTournaments);
+      getAllPlayers().then(setPlayers);
+      getPaymentRequests().then(setPaymentRequests);
 
       return () => {
-        unsubscribeTournaments();
-        unsubscribePlayers();
+        tournamentsSubscription.unsubscribe();
+        playersSubscription.unsubscribe();
+        paymentsSubscription.unsubscribe();
       };
     }
   }, [currentUser]);
@@ -167,26 +174,20 @@ function App() {
       console.log('📸 Screenshot uploaded successfully:', uploadResult);
       
       // Create payment request for admin verification
-      const paymentRequest: PaymentRequest = {
-        id: paymentId,
+      const paymentRequest: Omit<PaymentRequest, 'id'> = {
         userId: currentUser.id,
         userEmail: currentUser.email,
         username: currentUser.username,
         amount,
-        screenshotName: screenshot.name,
-        screenshotSize: screenshot.size,
         screenshotURL: uploadResult.url,
         screenshotPath: uploadResult.path,
-        screenshotFileName: uploadResult.fileName,
         status: 'pending',
         submittedAt: new Date().toISOString(),
         method: 'jazzcash'
       };
       
-      // Save to state and localStorage (temporary until backend)
-      const updatedRequests = [...paymentRequests, paymentRequest];
-      setPaymentRequests(updatedRequests);
-      localStorage.setItem('paymentRequests', JSON.stringify(updatedRequests));
+      // Save to Supabase database
+      await createPaymentRequest(paymentRequest);
       
       console.log('💰 Payment request created:', paymentRequest);
       
@@ -213,13 +214,7 @@ function App() {
       await addTokensToPlayer(player.id, request.amount, `Payment Approved: ${request.amount} PKR via ${request.method}`);
 
       // Update request status
-      const updatedRequests = paymentRequests.map(r => 
-        r.id === requestId 
-          ? { ...r, status: 'approved' as const, processedAt: new Date().toISOString() }
-          : r
-      );
-      setPaymentRequests(updatedRequests);
-      localStorage.setItem('paymentRequests', JSON.stringify(updatedRequests));
+      await updatePaymentRequest(requestId, { status: 'approved' });
 
       alert(`Payment approved! ${request.amount} tokens added to ${request.username}'s account.`);
     } catch (error) {
@@ -230,20 +225,17 @@ function App() {
 
   // Admin function to reject payment request
   const rejectPaymentRequest = async (requestId: string, reason?: string) => {
-    const updatedRequests = paymentRequests.map(r => 
-      r.id === requestId 
-        ? { 
-            ...r, 
-            status: 'rejected' as const, 
-            processedAt: new Date().toISOString(),
-            rejectionReason: reason 
-          }
-        : r
-    );
-    setPaymentRequests(updatedRequests);
-    localStorage.setItem('paymentRequests', JSON.stringify(updatedRequests));
+    try {
+      await updatePaymentRequest(requestId, { 
+        status: 'rejected', 
+        rejectionReason: reason 
+      });
 
-    alert('Payment request rejected.');
+      alert('Payment request rejected.');
+    } catch (error) {
+      console.error('Error rejecting payment:', error);
+      alert('Failed to reject payment. Please try again.');
+    }
   };
 
   // Get current player's tokens (infinite for admin)
