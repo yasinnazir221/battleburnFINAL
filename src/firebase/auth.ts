@@ -6,24 +6,24 @@ import {
   User as FirebaseUser,
   updateProfile
 } from 'firebase/auth';
+import { 
+  doc, 
+  setDoc, 
+  getDoc, 
+  collection, 
+  addDoc 
+} from 'firebase/firestore';
 import { auth, db, serverTimestamp } from './config';
 import { User } from '../types';
-
-// Mock Firestore functions for testing
-const doc = (db: any, collection: string, id: string) => db.collection(collection).doc(id);
-const setDoc = async (docRef: any, data: any, options?: any) => docRef.set(data, options);
-const getDoc = async (docRef: any) => docRef.get();
-const collection = (db: any, path: string) => db.collection(path);
-const addDoc = async (collectionRef: any, data: any) => collectionRef.add(data);
 
 // Sign up new user
 export const signUpUser = async (email: string, password: string, username: string, playerId: string, uid: string) => {
   try {
-    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const firebaseUser = userCredential.user;
     
     // Update the user's display name
-    await auth.updateProfile(firebaseUser, {
+    await updateProfile(firebaseUser, {
       displayName: username
     });
 
@@ -35,7 +35,7 @@ export const signUpUser = async (email: string, password: string, username: stri
       role: 'player' as const,
       tokens: 50, // Starting tokens
       playerId: playerId, // Player ID
-      uid: uid, // Free Fire UID
+      gameUid: uid, // Free Fire UID
       registeredTournaments: [],
       matchHistory: [],
       createdAt: serverTimestamp(),
@@ -45,7 +45,7 @@ export const signUpUser = async (email: string, password: string, username: stri
     await setDoc(doc(db, 'users', firebaseUser.uid), userData);
 
     // Log the signup event
-    await addDoc(db.collection('userActivity'), {
+    await addDoc(collection(db, 'userActivity'), {
       userId: firebaseUser.uid,
       email: firebaseUser.email,
       username: username,
@@ -70,7 +70,7 @@ export const signUpUser = async (email: string, password: string, username: stri
 // Sign in existing user
 export const signInUser = async (email: string, password: string) => {
   try {
-    const userCredential = await auth.signInWithEmailAndPassword(email, password);
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const firebaseUser = userCredential.user;
 
     // Get user data from Firestore
@@ -89,7 +89,7 @@ export const signInUser = async (email: string, password: string) => {
     }, { merge: true });
 
     // Log the login event
-    await addDoc(db.collection('userActivity'), {
+    await addDoc(collection(db, 'userActivity'), {
       userId: firebaseUser.uid,
       email: firebaseUser.email,
       username: userData.username,
@@ -118,9 +118,9 @@ export const signOutUser = async () => {
     if (currentUser) {
       // Log the logout event
       const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-      if (userDoc.exists && userDoc.exists()) {
+      if (userDoc.exists()) {
         const userData = userDoc.data();
-        await addDoc(db.collection('userActivity'), {
+        await addDoc(collection(db, 'userActivity'), {
           userId: currentUser.uid,
           email: currentUser.email,
           username: userData.username,
@@ -132,7 +132,7 @@ export const signOutUser = async () => {
       }
     }
     
-    await auth.signOut();
+    await signOut(auth);
   } catch (error: any) {
     console.error('Error signing out:', error);
     throw new Error(error.message);
@@ -141,15 +141,15 @@ export const signOutUser = async () => {
 
 // Listen to authentication state changes
 export const onAuthStateChange = (callback: (user: User | null) => void) => {
-  return auth.onAuthStateChanged(async (firebaseUser: any) => {
+  return onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
     if (firebaseUser) {
       try {
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (userDoc.exists && userDoc.exists()) {
+        if (userDoc.exists()) {
           const userData = userDoc.data();
           callback({
             id: firebaseUser.uid,
-            email: firebaseUser.email,
+            email: firebaseUser.email!,
             username: userData.username,
             role: userData.role
           });

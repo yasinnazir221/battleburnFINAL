@@ -1,4 +1,5 @@
 // Firebase Storage utilities for payment screenshots
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from '../firebase/config';
 
 export interface UploadResult {
@@ -25,7 +26,7 @@ export const uploadPaymentScreenshot = async (
     const filePath = `payment-screenshots/${userId}/${fileName}`;
     
     // Create storage reference
-    const storageRef = storage.ref(filePath);
+    const storageRef = ref(storage, filePath);
     
     // Add metadata
     const metadata = {
@@ -39,10 +40,10 @@ export const uploadPaymentScreenshot = async (
     };
     
     // Upload file with metadata
-    const snapshot = await storageRef.uploadBytes(compressedFile, metadata);
+    const snapshot = await uploadBytes(storageRef, compressedFile, metadata);
     
     // Get download URL
-    const downloadURL = await storageRef.getDownloadURL();
+    const downloadURL = await getDownloadURL(storageRef);
     
     console.log('✅ Screenshot uploaded successfully:', {
       fileName,
@@ -65,8 +66,8 @@ export const uploadPaymentScreenshot = async (
 // Get screenshot URL from storage path
 export const getScreenshotURL = async (filePath: string): Promise<string> => {
   try {
-    const storageRef = storage.ref(filePath);
-    const url = await storageRef.getDownloadURL();
+    const storageRef = ref(storage, filePath);
+    const url = await getDownloadURL(storageRef);
     return url;
   } catch (error) {
     console.error('❌ Error getting screenshot URL:', error);
@@ -77,8 +78,8 @@ export const getScreenshotURL = async (filePath: string): Promise<string> => {
 // Delete screenshot from storage
 export const deleteScreenshot = async (filePath: string): Promise<void> => {
   try {
-    const storageRef = storage.ref(filePath);
-    await storageRef.delete();
+    const storageRef = ref(storage, filePath);
+    await deleteObject(storageRef);
     console.log('✅ Screenshot deleted successfully:', filePath);
   } catch (error) {
     console.error('❌ Error deleting screenshot:', error);
