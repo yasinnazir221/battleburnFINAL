@@ -1,26 +1,28 @@
 import { 
-  collection, 
-  doc, 
-  getDocs, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  addDoc, 
-  query, 
-  orderBy, 
-  limit, 
-  where,
-  serverTimestamp,
-  onSnapshot
-} from 'firebase/firestore';
-import { db } from './config';
+  db,
+  serverTimestamp
+} from './config';
 import { Tournament, Player, TokenTransaction } from '../types';
+
+// Mock Firestore functions for testing
+const collection = (db: any, path: string) => db.collection(path);
+const doc = (db: any, collection: string, id: string) => db.collection(collection).doc(id);
+const getDocs = async (collectionRef: any) => collectionRef.getDocs();
+const getDoc = async (docRef: any) => docRef.get();
+const setDoc = async (docRef: any, data: any, options?: any) => docRef.set(data, options);
+const updateDoc = async (docRef: any, data: any) => docRef.update(data);
+const deleteDoc = async (docRef: any) => docRef.delete();
+const addDoc = async (collectionRef: any, data: any) => collectionRef.add(data);
+const query = (collectionRef: any, ...constraints: any[]) => collectionRef;
+const orderBy = (field: string, direction?: string) => ({ field, direction });
+const limit = (count: number) => ({ count });
+const where = (field: string, operator: string, value: any) => ({ field, operator, value });
+const onSnapshot = (ref: any, callback: (snapshot: any) => void) => ref.onSnapshot(callback);
 
 // Get all users/players
 export const getAllPlayers = async (): Promise<Player[]> => {
   try {
-    const querySnapshot = await getDocs(collection(db, 'users'));
+    const querySnapshot = await getDocs(db.collection('users'));
     const players: Player[] = [];
     
     querySnapshot.forEach((doc) => {
@@ -52,7 +54,7 @@ export const getAllPlayers = async (): Promise<Player[]> => {
 // Get all tournaments
 export const getAllTournaments = async (): Promise<Tournament[]> => {
   try {
-    const querySnapshot = await getDocs(collection(db, 'tournaments'));
+    const querySnapshot = await getDocs(db.collection('tournaments'));
     const tournaments: Tournament[] = [];
     
     querySnapshot.forEach((doc) => {
@@ -90,7 +92,7 @@ export const getAllTournaments = async (): Promise<Tournament[]> => {
 // Create tournament
 export const createTournament = async (tournament: Omit<Tournament, 'id'>) => {
   try {
-    const docRef = await addDoc(collection(db, 'tournaments'), {
+    const docRef = await addDoc(db.collection('tournaments'), {
       ...tournament,
       createdAt: serverTimestamp()
     });
@@ -130,7 +132,7 @@ export const updatePlayerTokens = async (playerId: string, amount: number, reaso
     const playerRef = doc(db, 'users', playerId);
     const playerDoc = await getDoc(playerRef);
     
-    if (!playerDoc.exists()) {
+    if (!playerDoc.exists || !playerDoc.exists()) {
       throw new Error('Player not found');
     }
     
@@ -153,7 +155,7 @@ export const updatePlayerTokens = async (playerId: string, amount: number, reaso
       adminId
     };
     
-    await addDoc(collection(db, 'tokenTransactions'), {
+    await addDoc(db.collection('tokenTransactions'), {
       ...transaction,
       timestamp: serverTimestamp()
     });
@@ -167,11 +169,7 @@ export const updatePlayerTokens = async (playerId: string, amount: number, reaso
 // Get user activity logs (for admin)
 export const getUserActivityLogs = async (limitCount: number = 50) => {
   try {
-    const q = query(
-      collection(db, 'userActivity'), 
-      orderBy('timestamp', 'desc'), 
-      limit(limitCount)
-    );
+    const q = db.collection('userActivity').orderBy('timestamp', 'desc').limit(limitCount);
     
     const querySnapshot = await getDocs(q);
     const activities: any[] = [];
@@ -193,11 +191,7 @@ export const getUserActivityLogs = async (limitCount: number = 50) => {
 // Get token transaction logs
 export const getTokenTransactions = async (limitCount: number = 50) => {
   try {
-    const q = query(
-      collection(db, 'tokenTransactions'), 
-      orderBy('timestamp', 'desc'), 
-      limit(limitCount)
-    );
+    const q = db.collection('tokenTransactions').orderBy('timestamp', 'desc').limit(limitCount);
     
     const querySnapshot = await getDocs(q);
     const transactions: any[] = [];
@@ -218,7 +212,7 @@ export const getTokenTransactions = async (limitCount: number = 50) => {
 
 // Real-time listeners
 export const listenToPlayers = (callback: (players: Player[]) => void) => {
-  return onSnapshot(collection(db, 'users'), (snapshot) => {
+  return onSnapshot(db.collection('users'), (snapshot) => {
     const players: Player[] = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
@@ -243,7 +237,7 @@ export const listenToPlayers = (callback: (players: Player[]) => void) => {
 };
 
 export const listenToTournaments = (callback: (tournaments: Tournament[]) => void) => {
-  return onSnapshot(collection(db, 'tournaments'), (snapshot) => {
+  return onSnapshot(db.collection('tournaments'), (snapshot) => {
     const tournaments: Tournament[] = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
